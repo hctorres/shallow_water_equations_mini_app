@@ -11,7 +11,8 @@ ds = AMReXDataset("plt00000")
 
 ds.field_list
 
-#sl = yt.SlicePlot(ds, 2, ('boxlib', 'phi'))
-sl = yt.SlicePlot(ds, 'z', ('boxlib', 'phi'))
+#sl = yt.SlicePlot(ds, 'z', ('boxlib', 'phi'), origin="native", axes_unit="unitary")
+
+sl = yt.AxisAlignedSlicePlot(ds, 'z', ('boxlib', 'phi'), origin="native", axes_unit="unitary")
 
 sl.save()
