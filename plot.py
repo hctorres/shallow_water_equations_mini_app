@@ -4,6 +4,8 @@ import yt
 from yt.frontends import amrex
 from yt.frontends.amrex.data_structures import AMReXDataset
 
+#yt.toggle_interactivity()
+
 ds = AMReXDataset("plt00000")
 #ds = AMReXDataset("plt01000")
 
