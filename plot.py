@@ -13,6 +13,7 @@ ds.field_list
 
 #sl = yt.SlicePlot(ds, 'z', ('boxlib', 'phi'), origin="native", axes_unit="unitary")
 
-sl = yt.AxisAlignedSlicePlot(ds, 'z', ('boxlib', 'phi'), origin="native", axes_unit="unitary")
+#sl = yt.AxisAlignedSlicePlot(ds, 'z', ('boxlib', 'phi'), origin="native", axes_unit="unitary")
+sl = yt.AxisAlignedSlicePlot(ds, 'z', ('boxlib', 'p'), origin="native", axes_unit="unitary")
 
 sl.save()
