@@ -1,6 +1,4 @@
 /*
- * A simplified single file version of the HeatEquation_EX0_C exmaple.
- * This code is designed to be used with Demo_Tutorial.rst.
  *
  */
 
@@ -66,6 +64,10 @@ int main (int argc, char* argv[])
         pp.get("dt",dt);
     }
 
+    // TODO: a hack to make sure that we use one process
+    n_cell = 16;
+    max_grid_size = 1000000000;
+
     // **********************************
     // DEFINE SIMULATION SETUP AND GEOMETRY
     // **********************************
@@ -83,31 +85,17 @@ int main (int argc, char* argv[])
     //amrex::Box domain(dom_lo, dom_hi);
     
     amrex::Box cell_centered_box(dom_lo, dom_hi);
-//    amrex::Box x_face_centered_box(dom_lo, dom_hi+1, amrex::IndexType({1,0}));
+    //amrex::Box x_face_centered_box(dom_lo, dom_hi+1, amrex::IndexType({1,0}));
 //    amrex::Box y_face_centered_box(dom_lo, dom_hi+1, amrex::IndexType({0,1}));
-    amrex::Box node_centered_box = amrex::surroundingNodes(cell_centered_box);
+//    amrex::Box node_centered_box = amrex::surroundingNodes(cell_centered_box);
 
-    amrex::Print() << "Cell centered box " << cell_centered_box << std::endl;
-//    amrex::Print() << "X face centered box " << x_face_centered_box << std::endl;
-//    amrex::Print() << "y face centered box " << y_face_centered_box << std::endl;
-    amrex::Print() << "node centered box " << node_centered_box << std::endl;
+    //amrex::Box x_face_centered_box = amrex::convert(cell_centered_box, amrex::IndexType({1,0}));
+    //amrex::Box y_face_centered_box = amrex::convert(cell_centered_box, amrex::IndexType({0,1}));
 
-    // This defines the physical box, [0,1] in each direction.
-//    amrex::RealBox real_box({ 0., 0.},
-//                     { 1., 1.});
-    amrex::RealBox real_box({ 0., 0.},
-                     { 2*std::numbers::pi, 2*std::numbers::pi});
-
-    // This, a value of 0, says we are using Cartesian coordinates
-    int coordinate_system = 0;
-
-    // This sets the boundary conditions in each direction to periodic
-    amrex::Array<int,AMREX_SPACEDIM> is_periodic {1,1};
-
-    // This defines a Geometry object
-    //amrex::Geometry geom(cell_centered_box, real_box, coordinate_system, is_periodic);
-    //amrex::Geometry geom(cell_centered_box, real_box, amrex::CoordSys::cartesian, is_periodic);
-    //amrex::Print() << "geom " << geom << std::endl;
+    //amrex::Print() << "Cell centered box " << cell_centered_box << std::endl;
+    //amrex::Print() << "X face centered box " << x_face_centered_box << std::endl;
+    //amrex::Print() << "y face centered box " << y_face_centered_box << std::endl;
+//    amrex::Print() << "node centered box " << node_centered_box << std::endl;
     
     amrex::Geometry geom;
     {
@@ -115,7 +103,7 @@ int main (int argc, char* argv[])
                        { 2*std::numbers::pi, 2*std::numbers::pi});
 
       // This, a value of 0, says we are using Cartesian coordinates
-      int coordinate_system = 0;
+      //int coordinate_system = 0;
 
       // This sets the boundary conditions in each direction to periodic
       amrex::Array<int,AMREX_SPACEDIM> is_periodic {1,1};
@@ -130,7 +118,6 @@ int main (int argc, char* argv[])
 
     // Initialize the boxarray "ba" from the single box "domain"
     amrex::BoxArray ba;
-    //ba.define(domain);
     ba.define(cell_centered_box);
 
     amrex::Print() << "ba before max size " << ba << std::endl;
@@ -139,7 +126,6 @@ int main (int argc, char* argv[])
     ba.maxSize(max_grid_size);
 
     amrex::Print() << "ba after max size " << ba << std::endl;
-
 
     // extract dx from the geometry object
     amrex::GpuArray<amrex::Real,2> dx = geom.CellSizeArray();
@@ -170,9 +156,18 @@ int main (int argc, char* argv[])
     //    flux[dir].define(edge_ba, dm, 1, 0);
     //}
 
-    amrex::BoxArray node_ba = ba;
-    node_ba.surroundingNodes();
-    amrex::MultiFab p(node_ba, dm, Ncomp, 0);
+    amrex::BoxArray x_face_box_array = amrex::convert(ba, {1,0});
+    amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
+    amrex::MultiFab v(x_face_box_array, dm, Ncomp, 0);
+
+    amrex::BoxArray y_face_box_array = amrex::convert(ba, {0,1});
+    amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
+    amrex::MultiFab u(y_face_box_array, dm, Ncomp, 0);
+
+    amrex::BoxArray surrounding_nodes_box_array= ba;
+    surrounding_nodes_box_array.surroundingNodes();
+    amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
+    amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, 0);
 
     //BoxArray x_face_ba = ba;
     //x_face_ba.surroundingNodes(0);
@@ -211,6 +206,7 @@ int main (int argc, char* argv[])
         });
     }
 
+    phi_old.FillBoundary(geom.periodicity());
 
 
     // coeffiecent for initialization of p
@@ -230,36 +226,81 @@ int main (int argc, char* argv[])
             amrex::Real x_node = i * dx[0];
             amrex::Real y_node = j * dx[1];
 
-            //p_array(i,j,k) = pcf * (cos(2*x_node) + cos(2*y_node)) + 5000;
-            p_array(i,j,k) = 1;
+            p_array(i,j,k) = pcf * (cos(2*x_node) + cos(2*y_node)) + 5000;
+            //p_array(i,j,k) = 1;
         });
     }
 
     //p.FillBoundary();
     //p.FillBoundary(geom.periodicity());
 
+    double mesh_dy = 100000;
+    for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box& bx = mfi.validbox();
+
+        const amrex::Array4<amrex::Real>& u_array = u.array(mfi);
+        const amrex::Array4<amrex::Real>& phi_old_array = phi_old.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        {
+            u_array(i,j,k) = -(phi_old_array(i,j,k)-phi_old_array(i,j-1,k))/mesh_dy;
+        });
+    }
+
+    for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box& bx = mfi.validbox();
+
+        const amrex::Array4<amrex::Real>& v_array = u.array(mfi);
+        const amrex::Array4<amrex::Real>& phi_old_array = phi_old.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+        {
+            v_array(i,j,k) = (phi_old_array(i,j,k)-phi_old_array(i-1,j,k))/mesh_dx;
+        });
+    }
+
     // for writing values to output file so everything is at the cell centers
     //amrex::MultiFab output_values(ba, dm, 1, Nghost);
-    amrex::MultiFab output_values(ba, dm, 1, 0);
+    //amrex::MultiFab output_values(ba, dm, 1, 0);
+    //for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
+    //{
+    //    const amrex::Box& bx = mfi.validbox();
 
+    //    const amrex::Array4<amrex::Real const>& phi_old_array = phi_old.const_array(mfi);
+    //    const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
+
+    //    const amrex::Array4<amrex::Real>& output_values_array = output_values.array(mfi);
+
+    //    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+    //    {
+    //        //output_values_array(i,j,k) = phi_old_array(i,j,k);
+    //        output_values_array(i,j,k) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
+    //        //output_values_array(i,j,k) = 100;
+    //    });
+    //}
+
+    amrex::MultiFab output_values(ba, dm, 4, 0);
     for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
 
         const amrex::Array4<amrex::Real const>& phi_old_array = phi_old.const_array(mfi);
         const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
+        const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
+        const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
 
         const amrex::Array4<amrex::Real>& output_values_array = output_values.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-            //output_values_array(i,j,k) = phi_old_array(i,j,k);
-            output_values_array(i,j,k) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
-            //output_values_array(i,j,k) = 100;
+            output_values_array(i,j,k,0) = phi_old_array(i,j,k);
+            output_values_array(i,j,k,1) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
+            output_values_array(i,j,k,2) = (u_array(i,j,k) + u_array(i,j+1,k))/2.0;
+            output_values_array(i,j,k,3) = (v_array(i,j,k) + u_array(i+1,j,k))/2.0;
         });
     }
-
-
 
     // **********************************
     // WRITE INITIAL PLOT FILE
@@ -271,9 +312,8 @@ int main (int argc, char* argv[])
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,5);
         //WriteSingleLevelPlotfile(pltfile, phi_old, {"phi"}, geom, time, 0);
-        //WriteSingleLevelPlotfile(pltfile, phi_old, {"p"}, geom, time, 0);
         //WriteSingleLevelPlotfile(pltfile, p, {"p"}, geom, time, 0);
-        WriteSingleLevelPlotfile(pltfile, output_values, {"p"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, output_values, {"phi_old", "p", "u", "v"}, geom, time, 0);
     }
 
 
