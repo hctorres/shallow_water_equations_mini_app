@@ -140,9 +140,8 @@ int main (int argc, char* argv[])
     amrex::DistributionMapping dm(ba);
     amrex::Print() << "dm " << dm << std::endl;
 
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    amrex::MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    amrex::MultiFab phi_new(ba, dm, Ncomp, Nghost);
+    amrex::MultiFab psi_old(ba, dm, Ncomp, Nghost);
+    amrex::MultiFab psi_new(ba, dm, Ncomp, Nghost);
 
 
     //// Set up face fields
@@ -169,7 +168,6 @@ int main (int argc, char* argv[])
     amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
     amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, 0);
 
-
     //BoxArray x_face_ba = ba;
     //x_face_ba.surroundingNodes(0);
     //amrex::MultiFab phi_new(ba, dm, Ncomp, Nghost);
@@ -185,11 +183,11 @@ int main (int argc, char* argv[])
     amrex::Real a = 1000000;
 
     // loop over cell centers
-    for (amrex::MFIter mfi(phi_old); mfi.isValid(); ++mfi)
+    for (amrex::MFIter mfi(psi_old); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
 
-        const amrex::Array4<amrex::Real>& phiOld = phi_old.array(mfi);
+        const amrex::Array4<amrex::Real>& phiOld = psi_old.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
@@ -200,18 +198,17 @@ int main (int argc, char* argv[])
 
             amrex::Real x_cell_center = (i+0.5) * dx[0];
             amrex::Real y_cell_center = (j+0.5) * dx[1];
-            amrex::Real x_node = (i) * dx[0];
-            amrex::Real y_node = (j) * dx[1];
+            //amrex::Real x_node = (i) * dx[0];
+            //amrex::Real y_node = (j) * dx[1];
 
             phiOld(i,j,k) = a*std::sin(x_cell_center)*std::sin(y_cell_center);
         });
     }
 
-    phi_old.FillBoundary(geom.periodicity());
+    psi_old.FillBoundary(geom.periodicity());
 
-    amrex::Print() << "phi_old min: " << phi_old.min(0) << std::endl;
-    amrex::Print() << "phi_old max: " << phi_old.max(0) << std::endl;
-
+    amrex::Print() << "psi_old min: " << psi_old.min(0) << std::endl;
+    amrex::Print() << "psi_old max: " << psi_old.max(0) << std::endl;
 
     // coeffiecent for initialization of p
     int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python script
@@ -246,7 +243,7 @@ int main (int argc, char* argv[])
         const amrex::Box& bx = mfi.validbox();
 
         const amrex::Array4<amrex::Real>& u_array = u.array(mfi);
-        const amrex::Array4<amrex::Real>& phi_old_array = phi_old.array(mfi);
+        const amrex::Array4<amrex::Real>& phi_old_array = psi_old.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
@@ -257,13 +254,12 @@ int main (int argc, char* argv[])
     amrex::Print() << "u min: " << u.min(0) << std::endl;
     amrex::Print() << "u max: " << u.max(0) << std::endl;
 
-
     for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
 
         const amrex::Array4<amrex::Real>& v_array = v.array(mfi);
-        const amrex::Array4<amrex::Real>& phi_old_array = phi_old.array(mfi);
+        const amrex::Array4<amrex::Real>& phi_old_array = psi_old.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
@@ -278,7 +274,7 @@ int main (int argc, char* argv[])
     //{
     //    const amrex::Box& bx = mfi.validbox();
 
-    //    const amrex::Array4<amrex::Real const>& phi_old_array = phi_old.const_array(mfi);
+    //    const amrex::Array4<amrex::Real const>& phi_old_array = psi_old.const_array(mfi);
     //    const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
 
     //    const amrex::Array4<amrex::Real>& output_values_array = output_values.array(mfi);
@@ -296,7 +292,7 @@ int main (int argc, char* argv[])
     {
         const amrex::Box& bx = mfi.validbox();
 
-        const amrex::Array4<amrex::Real const>& phi_old_array = phi_old.const_array(mfi);
+        const amrex::Array4<amrex::Real const>& phi_old_array = psi_old.const_array(mfi);
         const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
         const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
         const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
@@ -321,9 +317,9 @@ int main (int argc, char* argv[])
     {
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,5);
-        //WriteSingleLevelPlotfile(pltfile, phi_old, {"phi"}, geom, time, 0);
+        //WriteSingleLevelPlotfile(pltfile, psi_old, {"phi"}, geom, time, 0);
         //WriteSingleLevelPlotfile(pltfile, p, {"p"}, geom, time, 0);
-        WriteSingleLevelPlotfile(pltfile, output_values, {"phi_old", "p", "u", "v"}, geom, time, 0);
+        WriteSingleLevelPlotfile(pltfile, output_values, {"psi_old", "p", "u", "v"}, geom, time, 0);
     }
 
 
@@ -334,15 +330,15 @@ int main (int argc, char* argv[])
 //    for (int step = 1; step <= nsteps; ++step)
 //    {
 //        // fill periodic ghost cells
-//        phi_old.FillBoundary(geom.periodicity());
+//        psi_old.FillBoundary(geom.periodicity());
 //
 //        // new_phi = old_phi + dt * Laplacian(old_phi)
 //        // loop over boxes
-//        for ( amrex::MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+//        for ( amrex::MFIter mfi(psi_old); mfi.isValid(); ++mfi )
 //        {
 //            const amrex::Box& bx = mfi.validbox();
 //
-//            const amrex::Array4<amrex::Real>& phiOld = phi_old.array(mfi);
+//            const amrex::Array4<amrex::Real>& phiOld = psi_old.array(mfi);
 //            const amrex::Array4<amrex::Real>& phiNew = phi_new.array(mfi);
 //
 //            // advance the data by dt
@@ -374,7 +370,7 @@ int main (int argc, char* argv[])
 //        time = time + dt;
 //
 //        // copy new solution into old solution
-//        amrex::MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
+//        amrex::MultiFab::Copy(psi_old, phi_new, 0, 0, 1, 0);
 //
 //        // Tell the I/O Processor to write out which step we're doing
 //        amrex::Print() << "Advanced step " << step << "\n";
