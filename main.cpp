@@ -65,7 +65,7 @@ int main (int argc, char* argv[])
     }
 
     // TODO: a hack to make sure that we use one process
-    n_cell = 16;
+    n_cell = 64;
     max_grid_size = 1000000000;
 
     // **********************************
@@ -169,6 +169,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
     amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, 0);
 
+
     //BoxArray x_face_ba = ba;
     //x_face_ba.surroundingNodes(0);
     //amrex::MultiFab phi_new(ba, dm, Ncomp, Nghost);
@@ -208,12 +209,15 @@ int main (int argc, char* argv[])
 
     phi_old.FillBoundary(geom.periodicity());
 
+    amrex::Print() << "phi_old min: " << phi_old.min(0) << std::endl;
+    amrex::Print() << "phi_old max: " << phi_old.max(0) << std::endl;
+
 
     // coeffiecent for initialization of p
     int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python script
     double mesh_dx = 100000;
     double el = N*mesh_dx;
-    amrex::Real pcf = (a*a  + std::numbers::pi*std::numbers::pi)/(el * el);
+    amrex::Real pcf = (std::numbers::pi * std::numbers::pi * a * a)/(el * el);
 
     for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
     {
@@ -226,13 +230,15 @@ int main (int argc, char* argv[])
             amrex::Real x_node = i * dx[0];
             amrex::Real y_node = j * dx[1];
 
-            p_array(i,j,k) = pcf * (cos(2*x_node) + cos(2*y_node)) + 5000;
-            //p_array(i,j,k) = 1;
+            p_array(i,j,k) = pcf * (std::cos(2*x_node) + std::cos(2*y_node)) + 5000;
         });
     }
 
     //p.FillBoundary();
     //p.FillBoundary(geom.periodicity());
+
+    amrex::Print() << "p min: " << p.min(0) << std::endl;
+    amrex::Print() << "p max: " << p.max(0) << std::endl;
 
     double mesh_dy = 100000;
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
@@ -248,11 +254,15 @@ int main (int argc, char* argv[])
         });
     }
 
+    amrex::Print() << "u min: " << u.min(0) << std::endl;
+    amrex::Print() << "u max: " << u.max(0) << std::endl;
+
+
     for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
 
-        const amrex::Array4<amrex::Real>& v_array = u.array(mfi);
+        const amrex::Array4<amrex::Real>& v_array = v.array(mfi);
         const amrex::Array4<amrex::Real>& phi_old_array = phi_old.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
@@ -298,7 +308,7 @@ int main (int argc, char* argv[])
             output_values_array(i,j,k,0) = phi_old_array(i,j,k);
             output_values_array(i,j,k,1) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
             output_values_array(i,j,k,2) = (u_array(i,j,k) + u_array(i,j+1,k))/2.0;
-            output_values_array(i,j,k,3) = (v_array(i,j,k) + u_array(i+1,j,k))/2.0;
+            output_values_array(i,j,k,3) = (v_array(i,j,k) + v_array(i+1,j,k))/2.0;
         });
     }
 
