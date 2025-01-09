@@ -1,6 +1,7 @@
 # Shallow Water Equations Mini-App
 
 
+## Initializtion
 
 $$ \psi = a \sin(x) \cos(y) $$
 
@@ -19,7 +20,56 @@ Continuity is still automatically satisified either way but maybe look into this
 The pressure? is initialized to:
 $$ p = C_{\mathrm{pcf}}( \cos(2 x) + \cos(2 y) ) + 5000 $$
 
-where $C_{\mathrm{pcf}} = \frac{\pi^2 a^2}{e_l}$ where $e_l = n * dx$ but dx is hard set to a value of 100000 for some reason. Maybe the length scale is not 0 to $2\pi$ as associated with the initialization of the stream funcion but is instead $(0, N*dx)$ and $(0, N*dy)$. Where N and M are set according to the inputfile and dx = dy = 100000 is hard set.
+where $C_{\mathrm{pcf}} = \frac{\pi^2 a^2}{e_l^2}$ where $e_l = n * dx$ but dx is hard set to a value of 100000 for some reason. Maybe the length scale is not 0 to $2\pi$ as associated with the initialization of the stream funcion but is instead $(0, N*dx)$ and $(0, N*dy)$. Where N and M are set according to the inputfile and dx = dy = 100000 is hard set.
+
+
+## Governing Equation
+The shallow water equations are:
+$$ \frac{\partial{\vec{V}}}{\partial t} + \eta \hat{N} \times P \vec{V} + \nabla \left( P + \frac{1}{2}\vec{V} \cdot \vec{V} \right) = 0$$
+
+$$ \eta = \frac{\nabla \times \vec{V}}{P} $$
+
+Where in component form we get:
+$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+
+$$ \frac{\partial v}{\partial t} = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+
+$$ \eta = \frac{1}{P} \left( \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} \right) = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
+
+Note that the three equaitons are evaluated at different locaitons. The equation to time step u is evaluated at the y faces. Likewise the equation to time step v is evaluated at the x faces. The equation for eta is evaluated at the cell centers.
+
+We need to evaluete the same term both the x and y velocity equations:
+$$ h = P + \frac{1}{2} (u^2 + v^2) $$
+Since we need $\frac{\partial h}{\partial x}$ at the y faces (location of $u$) and $\frac{\partial h}{\partial y}$ at the y faces (location of $v$). We will compute h at the nodal locations (same as P).
+
+Taking keeping the indexing scheme in mind ()
+
+$$ h_{i,j} = P_{i,j} + \frac{1}{2} \left( u^2|_{\mathrm{node}} + v^2|_{\mathrm{node}} \right) $$
+
+$$ h_{i,j} = P_{i,j} + \frac{1}{2} \left( \frac{u_{i-1,j}^2 + u_{i,j}^2}{2} + \frac{v_{i,j-1}^2 + v_{i,j}^2}{2} \right) $$
+
+$$ h_{i,j} = P_{i,j} + \frac{1}{4} \left( u_{i-1,j}^2 + u_{i,j}^2 + v_{i,j-1}^2 + v_{i,j}^2 \right) $$
+
+In the code there is also a term for the pressure velcity product that is evaluated at the same location as the velocity. Called cu in the code.
+
+$$ [Pu] |_{\mathrm{y\_face}} = \frac{P_{i,j} + P_{i+1,j}}{2} u_{i,j}$$
+
+$$ [Pv] |_{\mathrm{x\_face}} = \frac{P_{i,j} + P_{i,j+1}}{2} v_{i,j}$$
+
+$\eta$ is called z in the code and evaluated at the cell centers. 
+
+$$ \eta = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
+$$ \eta_{i,j} = \frac{ \frac{v_{i+1,j} - v_{i,j}}{dx} + \frac{u_{i,j+1} - u_{i,j}}{dy} }{\frac{P_{i,j} + P_{i+1,j} + P_{i,j+1} + P_{i+1,j+1}}{4}} $$
+
+$$ \eta_{i,j} = \frac{ \frac{4}{dx} (v_{i+1,j} - v_{i,j}) + \frac{4}{dy} (u_{i,j+1} - u_{i,j}) }{P_{i,j} + P_{i+1,j} + P_{i,j+1} + P_{i+1,j+1}} $$
+
+Now the semi-descritized equation for the x velocity is:
+
+$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+
+$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+
+
 
 
 
