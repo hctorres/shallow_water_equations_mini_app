@@ -169,9 +169,7 @@ int main (int argc, char* argv[])
     amrex::BoxArray surrounding_nodes_box_array= ba;
     surrounding_nodes_box_array.surroundingNodes();
     amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
-    amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, 0);
-
-
+    amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, Nghost);
 
     //BoxArray x_face_ba = ba;
     //x_face_ba.surroundingNodes(0);
@@ -236,11 +234,6 @@ int main (int argc, char* argv[])
         });
     }
 
-    //p.FillBoundary();
-    //p.FillBoundary(geom.periodicity());
-
-    amrex::Print() << "p min: " << p.min(0) << std::endl;
-    amrex::Print() << "p max: " << p.max(0) << std::endl;
 
     double mesh_dy = 100000;
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
@@ -256,8 +249,6 @@ int main (int argc, char* argv[])
         });
     }
 
-    amrex::Print() << "u min: " << u.min(0) << std::endl;
-    amrex::Print() << "u max: " << u.max(0) << std::endl;
 
     for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
     {
@@ -272,8 +263,16 @@ int main (int argc, char* argv[])
         });
     }
 
+    p.FillBoundary(geom.periodicity());
     u.FillBoundary(geom.periodicity());
     v.FillBoundary(geom.periodicity());
+
+    amrex::Print() << "p min: " << p.min(0) << std::endl;
+    amrex::Print() << "p max: " << p.max(0) << std::endl;
+    amrex::Print() << "u min: " << u.min(0) << std::endl;
+    amrex::Print() << "u max: " << u.max(0) << std::endl;
+    amrex::Print() << "v min: " << v.min(0) << std::endl;
+    amrex::Print() << "v max: " << v.max(0) << std::endl;
 
     // for writing values to output file so everything is at the cell centers
     //amrex::MultiFab output_values(ba, dm, 1, Nghost);
@@ -335,17 +334,20 @@ int main (int argc, char* argv[])
     // MAIN TIME EVOLUTION LOOP
     // **********************************
 
-    // h on the nodal points
-    amrex::MultiFab h(p.boxArray(), p.DistributionMap(), 1, 0);
-
     // cu on the y faces
-    amrex::MultiFab cu(u.boxArray(), u.DistributionMap(), 1, 0);
+    amrex::MultiFab cu(u.boxArray(), u.DistributionMap(), 1, Nghost);
 
     // cv on the x faces
-    amrex::MultiFab cv(v.boxArray(), v.DistributionMap(), 1, 0);
+    amrex::MultiFab cv(v.boxArray(), v.DistributionMap(), 1, Nghost);
 
     // z on the cell centers
-    amrex::MultiFab z(psi_old.boxArray(), psi_old.DistributionMap(), 1, 0);
+    amrex::MultiFab z(psi_old.boxArray(), psi_old.DistributionMap(), 1, Nghost);
+
+    // h on the nodal points
+    amrex::MultiFab h(p.boxArray(), p.DistributionMap(), 1, Nghost);
+
+    double fsdx = 4.0/mesh_dx;
+    double fsdy = 4.0/mesh_dy;
 
     for (int step = 1; step <= nsteps; ++step)
     {
@@ -353,6 +355,35 @@ int main (int argc, char* argv[])
         psi_old.FillBoundary(geom.periodicity());
         u.FillBoundary(geom.periodicity());
         v.FillBoundary(geom.periodicity());
+        p.FillBoundary(geom.periodicity());
+
+
+        for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
+        {
+            const amrex::Box& bx = mfi.validbox();
+
+            const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
+
+            const amrex::Array4<amrex::Real>& cu_array = cu.array(mfi);
+            const amrex::Array4<amrex::Real>& cv_array = cv.array(mfi);
+            const amrex::Array4<amrex::Real>& h_array =   h.array(mfi);
+            const amrex::Array4<amrex::Real>& z_array =   z.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            {
+                cu_array(i,j,k) = 0.5*(p_array(i,j,k) + p_array(i+1,j,k))*u_array(i,j,k);
+                cv_array(i,j,k) = 0.5*(p_array(i,j,k) + p_array(i,j+1,k))*v_array(i,j,k);
+                z_array(i,j,k) = (fsdx*(v_array(i+1,j,k)-v_array(i,j,k)) + fsdy*(u_array(i,j+1,k)-u_array(i,j,k)))/(p_array(i,j,k)+p_array(i+1,j,k)+p_array(i,j+1,k)+p_array(i+1,j+1,k));
+                h_array(i,j,k) = p_array(i,j,k) + 0.25*(u_array(i-1,j,k)*u_array(i-1,j,k) + u_array(i,j,k)*u_array(i,j,k) + v_array(i,j-1,k)*v_array(i,j-1,k) + v_array(i,j,k)*v_array(i,j,k));
+            });
+        }
+
+        cu.FillBoundary(geom.periodicity());
+        cv.FillBoundary(geom.periodicity());
+        h.FillBoundary(geom.periodicity());
+        z.FillBoundary(geom.periodicity());
 
 //        // new_phi = old_phi + dt * Laplacian(old_phi)
 //        // loop over boxes

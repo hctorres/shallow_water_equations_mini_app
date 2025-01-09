@@ -27,6 +27,10 @@ where $C_{\mathrm{pcf}} = \frac{\pi^2 a^2}{e_l^2}$ where $e_l = n * dx$ but dx i
 The shallow water equations are:
 $$ \frac{\partial{\vec{V}}}{\partial t} + \eta \hat{N} \times P \vec{V} + \nabla \left( P + \frac{1}{2}\vec{V} \cdot \vec{V} \right) = 0$$
 
+$$ \frac{\partial{P}}{\partial t} + \nabla \cdot \left( P \vec{V} \right) = 0$$
+
+where:
+
 $$ \eta = \frac{\nabla \times \vec{V}}{P} $$
 
 Where in component form we get:
