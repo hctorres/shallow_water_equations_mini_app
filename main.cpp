@@ -64,11 +64,6 @@ int main (int argc, char* argv[])
         pp.get("dt",dt);
     }
 
-    // TODO: a hack to make sure that we use one process
-    n_cell = 64;
-    max_grid_size = 1000000000;
-    nsteps = 10;
-
     // **********************************
     // DEFINE SIMULATION SETUP AND GEOMETRY
     // **********************************
@@ -175,8 +170,6 @@ int main (int argc, char* argv[])
     //x_face_ba.surroundingNodes(0);
     //amrex::MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    // time = starting time in the simulation
-    amrex::Real time = 0.0;
 
     // **********************************
     // INITIALIZE DATA LOOP
@@ -274,25 +267,6 @@ int main (int argc, char* argv[])
     amrex::Print() << "v min: " << v.min(0) << std::endl;
     amrex::Print() << "v max: " << v.max(0) << std::endl;
 
-    // for writing values to output file so everything is at the cell centers
-    //amrex::MultiFab output_values(ba, dm, 1, Nghost);
-    //amrex::MultiFab output_values(ba, dm, 1, 0);
-    //for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
-    //{
-    //    const amrex::Box& bx = mfi.validbox();
-
-    //    const amrex::Array4<amrex::Real const>& phi_old_array = psi_old.const_array(mfi);
-    //    const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
-
-    //    const amrex::Array4<amrex::Real>& output_values_array = output_values.array(mfi);
-
-    //    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-    //    {
-    //        //output_values_array(i,j,k) = phi_old_array(i,j,k);
-    //        output_values_array(i,j,k) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
-    //        //output_values_array(i,j,k) = 100;
-    //    });
-    //}
 
     amrex::MultiFab output_values(ba, dm, 4, 0);
     for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
@@ -319,13 +293,13 @@ int main (int argc, char* argv[])
     // WRITE INITIAL PLOT FILE
     // **********************************
 
+    amrex::Real time = 0.0;
+
     // Write a plotfile of the initial data if plot_int > 0
     if (plot_int > 0)
     {
         int step = 0;
         const std::string& pltfile = amrex::Concatenate("plt",step,5);
-        //WriteSingleLevelPlotfile(pltfile, psi_old, {"phi"}, geom, time, 0);
-        //WriteSingleLevelPlotfile(pltfile, p, {"p"}, geom, time, 0);
         WriteSingleLevelPlotfile(pltfile, output_values, {"psi_old", "p", "u", "v"}, geom, time, 0);
     }
 
@@ -349,14 +323,28 @@ int main (int argc, char* argv[])
     double fsdx = 4.0/mesh_dx;
     double fsdy = 4.0/mesh_dy;
 
-    for (int step = 1; step <= nsteps; ++step)
+    double tdt = dt;
+
+    amrex::MultiFab u_old(u.boxArray(), u.DistributionMap(), u.nComp(), u.nGrow());
+    amrex::MultiFab v_old(v.boxArray(), v.DistributionMap(), v.nComp(), v.nGrow());
+    amrex::MultiFab p_old(p.boxArray(), p.DistributionMap(), p.nComp(), p.nGrow());
+
+    amrex::MultiFab u_new(u.boxArray(), u.DistributionMap(), u.nComp(), u.nGrow());
+    amrex::MultiFab v_new(v.boxArray(), v.DistributionMap(), v.nComp(), v.nGrow());
+    amrex::MultiFab p_new(p.boxArray(), p.DistributionMap(), p.nComp(), p.nGrow());
+
+    amrex::MultiFab::Copy(u_old, u, 0, 0, u_old.nComp(), u_old.nGrow());
+    amrex::MultiFab::Copy(v_old, v, 0, 0, v_old.nComp(), v_old.nGrow());
+    amrex::MultiFab::Copy(p_old, p, 0, 0, p_old.nComp(), p_old.nGrow());
+
+
+    for (int time_step = 0; time_step < nsteps; ++time_step)
     {
         // fill periodic ghost cells
         psi_old.FillBoundary(geom.periodicity());
         u.FillBoundary(geom.periodicity());
         v.FillBoundary(geom.periodicity());
         p.FillBoundary(geom.periodicity());
-
 
         for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
         {
@@ -384,6 +372,92 @@ int main (int argc, char* argv[])
         cv.FillBoundary(geom.periodicity());
         h.FillBoundary(geom.periodicity());
         z.FillBoundary(geom.periodicity());
+
+        double tdts8 = tdt/8.0;
+        double tdtsdx = tdt/mesh_dx;
+        double tdtsdy = tdt/mesh_dy;
+
+        for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
+        {
+            const amrex::Box& bx = mfi.validbox();
+
+            // Read only arrays
+            const amrex::Array4<amrex::Real const>& p_old_array = p_old.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& u_old_array = u_old.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& v_old_array = v_old.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& cu_array = cu.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& cv_array = cv.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& h_array =   h.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& z_array =   z.const_array(mfi);
+
+            // Write arrays
+            const amrex::Array4<amrex::Real>& p_new_array = p_new.array(mfi);
+            const amrex::Array4<amrex::Real>& u_new_array = u_new.array(mfi);
+            const amrex::Array4<amrex::Real>& v_new_array = v_new.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            {
+                u_new_array(i,j,k) = u_old_array(i,j,k) + tdts8 * (z_array(i,j-1,k)+z_array(i,j,k)) * (cv_array(i,j-1,k) + cv_array(i,j,k) + cv_array(i+1,j-1,k) + cv_array(i+1,j,k)) - tdtsdx * (h_array(i+1,j,k) - h_array(i,j,k));
+                v_new_array(i,j,k) = v_old_array(i,j,k) - tdts8 * (z_array(i-1,j,k)+z_array(i,j,k)) * (cu_array(i-1,j,k) + cu_array(i-1,j+1,k) + cu_array(i,j,k) + cu_array(i,j+1,k)) - tdtsdy * (h_array(i,j+1,k) - h_array(i,j,k));
+                p_new_array(i,j,k) = p_old_array(i,j,k) - tdtsdx * (cu_array(i,j,k) - cu_array(i-1,j,k)) - tdtsdy * (cv_array(i,j,k) - cv_array(i,j-1,k));
+            });
+        }
+
+        u_new.FillBoundary(geom.periodicity());
+        v_new.FillBoundary(geom.periodicity());
+        p_new.FillBoundary(geom.periodicity());
+
+        time = time + dt;
+
+        if (time_step>0) {
+
+            double alpha = 0.001;
+
+            for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
+            {
+                const amrex::Box& bx = mfi.validbox();
+
+                // Read only arrays
+                const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
+                const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
+                const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
+                const amrex::Array4<amrex::Real const>& p_new_array = p_new.const_array(mfi);
+                const amrex::Array4<amrex::Real const>& u_new_array = u_new.const_array(mfi);
+                const amrex::Array4<amrex::Real const>& v_new_array = v_new.const_array(mfi);
+
+                // Write arrays
+                const amrex::Array4<amrex::Real>& p_old_array = p_old.array(mfi);
+                const amrex::Array4<amrex::Real>& u_old_array = u_old.array(mfi);
+                const amrex::Array4<amrex::Real>& v_old_array = v_old.array(mfi);
+
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                {
+                    amrex::Real u_old_temp = u_old_array(i,j,k);
+                    amrex::Real v_old_temp = v_old_array(i,j,k);
+                    amrex::Real p_old_temp = p_old_array(i,j,k);
+
+                    u_old_array(i,j,k) = u_array(i,j,k) + alpha * (u_new_array(i,j,k) - 2.0*u_array(i,j,k) + u_old_temp);
+                    v_old_array(i,j,k) = v_array(i,j,k) + alpha * (v_new_array(i,j,k) - 2.0*v_array(i,j,k) + v_old_temp);
+                    p_old_array(i,j,k) = p_array(i,j,k) + alpha * (p_new_array(i,j,k) - 2.0*p_array(i,j,k) + p_old_temp);
+                });
+            }
+
+            amrex::MultiFab::Copy(u, u_new, 0, 0, u.nComp(), u.nGrow());
+            amrex::MultiFab::Copy(v, v_new, 0, 0, v.nComp(), v.nGrow());
+            amrex::MultiFab::Copy(p, p_new, 0, 0, p.nComp(), p.nGrow());
+
+        } else {
+            tdt = tdt+tdt;
+
+            amrex::MultiFab::Copy(u_old, u, 0, 0, u.nComp(), u.nGrow());
+            amrex::MultiFab::Copy(v_old, v, 0, 0, v.nComp(), v.nGrow());
+            amrex::MultiFab::Copy(p_old, p, 0, 0, p.nComp(), p.nGrow());
+
+            amrex::MultiFab::Copy(u, u_new, 0, 0, u.nComp(), u.nGrow());
+            amrex::MultiFab::Copy(v, v_new, 0, 0, v.nComp(), v.nGrow());
+            amrex::MultiFab::Copy(p, p_new, 0, 0, p.nComp(), p.nGrow());
+
+        }
 
 //        // new_phi = old_phi + dt * Laplacian(old_phi)
 //        // loop over boxes
