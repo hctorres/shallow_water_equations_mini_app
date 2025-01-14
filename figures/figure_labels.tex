@@ -1,0 +1,26 @@
+\documentclass{article}
+
+\usepackage[dvipsnames]{xcolor}
+
+\begin{document}
+First document. This is a simple example, with no 
+extra parameters or packages included.
+
+Symbol labels:
+
+\definecolor{cell_centered_color}{named}{Black}
+\definecolor{node_color}{named}{Red}
+\definecolor{x_face_color}{named}{Blue}
+\definecolor{y_face_color}{named}{OliveGreen}
+
+\begin{Huge}
+	\color{cell_centered_color}{ 
+		$$ \psi_{i,j} $$ 
+	}
+	\color{node_color}{ $$ p_{i,j} $$ }
+	\color{x_face_color}{ $$ u_{i,j} $$ }
+	\color{y_face_color}{ $$ v_{i,j} $$ }
+\end{Huge}
+
+
+\end{document}
