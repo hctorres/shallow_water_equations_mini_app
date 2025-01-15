@@ -56,7 +56,7 @@ $$ h_{i,j} = P_{i,j} + \frac{1}{4} \left( u_{i-1,j}^2 + u_{i,j}^2 + v_{i,j-1}^2 
 
 In the code there is also a term for the pressure velcity product that is evaluated at the same location as the velocity. Called cu and cv in the code.
 
-$$ [Pu] |_{\mathrm{y\_face}} = \frac{P_{i,j} + P_{i+1,j}}{2} u_{i,j}$$
+$$ [Pu] |_{\mathrm{y\_face}}  = [cu]_{i,j} = \frac{P_{i,j} + P_{i+1,j}}{2} u_{i,j}$$
 
 $$ [Pv] |_{\mathrm{x\_face}} = \frac{P_{i,j} + P_{i,j+1}}{2} v_{i,j}$$
 

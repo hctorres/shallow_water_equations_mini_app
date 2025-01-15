@@ -3,20 +3,33 @@
 \usepackage[dvipsnames]{xcolor}
 
 \begin{document}
-First document. This is a simple example, with no 
-extra parameters or packages included.
 
-Symbol labels:
-
+% Only use these colors for labels. 
 \definecolor{cell_centered_color}{named}{Black}
 \definecolor{node_color}{named}{Red}
 \definecolor{x_face_color}{named}{Blue}
 \definecolor{y_face_color}{named}{OliveGreen}
 
+
+
+
 \begin{Huge}
+	
+	Legend:
+	\begin{tabular}{ c l }
+		\color{cell_centered_color}{$\bullet$} & \color{cell_centered_color}{Cell Centered} \\ 
+		\color{node_color}{$\bullet$} & \color{node_color}{Node} \\  
+		\color{x_face_color}{$\bullet$} & \color{x_face_color}{X Face} \\
+		\color{y_face_color}{$\bullet$} & \color{y_face_color}{Y Face} 
+	\end{tabular}
+	
+ 	\vspace{1in}
+	Cell Center Values:
 	\color{cell_centered_color}{ 
 		$$ \psi_{i,j} $$ 
+		$$ \psi_{i,j} $$ 
 	}
+	
 	\color{node_color}{ $$ p_{i,j} $$ }
 	\color{x_face_color}{ $$ u_{i,j} $$ }
 	\color{y_face_color}{ $$ v_{i,j} $$ }
