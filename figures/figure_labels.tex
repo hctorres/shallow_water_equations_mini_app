@@ -7,10 +7,8 @@
 % Only use these colors for labels. 
 \definecolor{cell_centered_color}{named}{Black}
 \definecolor{node_color}{named}{Red}
-\definecolor{x_face_color}{named}{Blue}
-\definecolor{y_face_color}{named}{OliveGreen}
-
-
+\definecolor{x_face_color}{named}{OliveGreen}
+\definecolor{y_face_color}{named}{Blue}
 
 
 \begin{Huge}
@@ -23,17 +21,80 @@
 		\color{y_face_color}{$\bullet$} & \color{y_face_color}{Y Face} 
 	\end{tabular}
 	
+	\begin{tabular}{ c l }
+	\color{cell_centered_color}{} & \color{cell_centered_color}{Cell Centered} \\ 
+	\color{node_color}{} & \color{node_color}{Node} \\  
+	\color{x_face_color}{} & \color{x_face_color}{X Face} \\
+	\color{y_face_color}{} & \color{y_face_color}{Y Face} 
+\end{tabular}	
+	
  	\vspace{1in}
 	Cell Center Values:
 	\color{cell_centered_color}{ 
 		$$ \psi_{i,j} $$ 
-		$$ \psi_{i,j} $$ 
+		$$ \psi_{i+1,j} $$
+		$$ \psi_{i,j+1} $$
+		$$ \psi_{i+1,j+1} $$ 
+		$$ \psi_{i-1,j} $$ 
+		$$ \psi_{i,j-1} $$
+		$$ \psi_{i-1,j-1} $$
 	}
 	
-	\color{node_color}{ $$ p_{i,j} $$ }
-	\color{x_face_color}{ $$ u_{i,j} $$ }
-	\color{y_face_color}{ $$ v_{i,j} $$ }
+	\color{node_color}{ 
+		$$ p_{i,j} $$ 
+		$$ p_{i+1,j} $$ 
+		$$ p_{i,j+1} $$
+		$$ p_{i+1,j+1} $$ 
+	}
+	
+	
+	\color{y_face_color}{ 
+		$$ u_{i,j} $$ 
+		$$ u_{i,j+1} $$ 
+	}
+	
+	
+	\color{x_face_color}{ 
+		$$ v_{i,j} $$ 
+		$$ v_{i+1,j} $$ 
+	}
+	
+	\color{black}{
+	Initial Conditions:
+	$$\vec{V}_0$$
+	$$P_0$$
+	
+	Mesh: \\
+	Nx \\
+	Ny \\
+	dx \\
+	dy \\
+	dx = dy = 10,000 \\
+	}
+	
+	
+	
 \end{Huge}
+
+The shallow water equations are:
+$$ \frac{\partial{\vec{V}}}{\partial t} + \eta \hat{N} \times P \vec{V} + \nabla \left( P + \frac{1}{2}\vec{V} \cdot \vec{V} \right) = 0$$
+
+$$ \frac{\partial{P}}{\partial t} + \nabla \cdot \left( P \vec{V} \right) = 0$$
+
+where:
+
+$$ \eta = \frac{\nabla \times \vec{V}}{P} $$
+
+Where in component form we get:
+
+$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+
+$$ \frac{\partial v}{\partial t} = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+
+$$ \eta = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
+
+
+
 
 
 \end{document}
