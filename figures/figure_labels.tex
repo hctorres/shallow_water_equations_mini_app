@@ -5,7 +5,7 @@
 \begin{document}
 
 % Only use these colors for labels. 
-\definecolor{cell_centered_color}{named}{Black}
+\definecolor{cell_centered_color}{named}{Orange}
 \definecolor{node_color}{named}{Red}
 \definecolor{x_face_color}{named}{OliveGreen}
 \definecolor{y_face_color}{named}{Blue}
@@ -38,6 +38,10 @@
 		$$ \psi_{i-1,j} $$ 
 		$$ \psi_{i,j-1} $$
 		$$ \psi_{i-1,j-1} $$
+		
+		$$ \eta_{i,j}$$
+		
+		$$ z $$
 	}
 	
 	\color{node_color}{ 
@@ -45,18 +49,27 @@
 		$$ p_{i+1,j} $$ 
 		$$ p_{i,j+1} $$
 		$$ p_{i+1,j+1} $$ 
+		
+		$$ h $$
+		$$ h_{i,j} $$
 	}
 	
 	
 	\color{y_face_color}{ 
 		$$ u_{i,j} $$ 
 		$$ u_{i,j+1} $$ 
+		$$ u_{i-1,j} $$ 		
+		
+		$$ cu $$
 	}
 	
 	
 	\color{x_face_color}{ 
 		$$ v_{i,j} $$ 
 		$$ v_{i+1,j} $$ 
+		$$ v_{i,j-} $$ 
+				
+		$$ cv $$
 	}
 	
 	\color{black}{
@@ -87,14 +100,25 @@ $$ \eta = \frac{\nabla \times \vec{V}}{P} $$
 
 Where in component form we get:
 
-$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
-$$ \frac{\partial v}{\partial t} = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
-
-$$ \eta = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
+$$ \textcolor{y_face_color}{ \frac{\partial u}{\partial t} }= \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
 
 
+$$  \textcolor{x_face_color}{ \frac{\partial v}{\partial t} } = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
+
+
+$$ \textcolor{cell_centered_color}{\eta} = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
+
+$$ \textcolor{node_color}{h_{i,j}} = \textcolor{node_color}{P_{i,j}} + \frac{1}{2} \left( \frac{\textcolor{y_face_color}{u_{i-1,j}}^2 + \textcolor{y_face_color}{u_{i,j}}^2}{2} + \frac{\textcolor{x_face_color}{v_{i,j-1}}^2 + \textcolor{x_face_color}{v_{i,j}}^2}{2} \right) $$
+
+
+$$ \textcolor{y_face_color}{[Pu]_{i,j}}  = \frac{ \textcolor{node_color}{P_{i,j}} + \textcolor{node_color}{P_{i+1,j}} }{2} \textcolor{y_face_color}{u_{i,j}} $$
+
+
+$$ \textcolor{x_face_color}{[Pv]_{i,j}} = \frac{\textcolor{node_color}{P_{i,j}} + \textcolor{node_color}{P_{i,j+1}}}{2} \textcolor{x_face_color}{v_{i,j}}$$
+
+$$ \textcolor{cell_centered_color}{\eta_{i,j}} = \frac{ \frac{ \textcolor{x_face_color}{v_{i+1,j}} - \textcolor{x_face_color}{v_{i,j}}}{dx} + \frac{ \textcolor{y_face_color}{u_{i,j+1}} - \textcolor{y_face_color}{u_{i,j}} }{dy} }{\frac{ \textcolor{node_color}{P_{i,j}} + \textcolor{node_color}{P_{i+1,j}} + \textcolor{node_color}{P_{i,j+1}} + \textcolor{node_color}{P_{i+1,j+1}} }{4} } $$
 
 \end{document}
