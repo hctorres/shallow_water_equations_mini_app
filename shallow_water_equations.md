@@ -38,6 +38,8 @@ $$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left(
 
 $$ \frac{\partial v}{\partial t} = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
+$$ \frac{\partial P}{\partial t} = -\frac{\partial}{\partial x}\left(Pu\right) - \frac{\partial}{\partial y} (Pv) $$ 
+
 $$ \eta = \frac{1}{P} \left( \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} \right) = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
 
 Note that the three equaitons are evaluated at different locaitons. The equation to time step u is evaluated at the y faces. Likewise the equation to time step v is evaluated at the x faces. The equation for eta is evaluated at the cell centers.
@@ -71,7 +73,11 @@ Now the semi-descritized equation for the x velocity is:
 
 $$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
-$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
+$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial h}{\partial x} $$
+
+$$ \frac{\partial u}{\partial t} = \left( \frac{\eta_{i,j-1} + \eta_{i,j}}{2} \right) [P v]_{i,j} - \frac{h_{i+1,j} - h_{i,j}}{dx}  $$
+
+
 
 
 

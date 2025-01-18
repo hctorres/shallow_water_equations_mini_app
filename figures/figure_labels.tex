@@ -10,6 +10,10 @@
 \definecolor{x_face_color}{named}{OliveGreen}
 \definecolor{y_face_color}{named}{Blue}
 
+\newcommand{\nodecolor}[1]{\textcolor{node_color}{#1}}
+\newcommand{\cellcolor}[1]{\textcolor{cell_centered_color}{#1}}
+\newcommand{\xfacecolor}[1]{\textcolor{x_face_color}{#1}}
+\newcommand{\yfacecolor}[1]{\textcolor{y_face_color}{#1}}
 
 \begin{Huge}
 	
@@ -108,6 +112,7 @@ $$ \textcolor{y_face_color}{ \frac{\partial u}{\partial t} }= \eta P v - \frac{\
 $$  \textcolor{x_face_color}{ \frac{\partial v}{\partial t} } = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
 
+$$ \nodecolor{ \frac{\partial P}{\partial t} } = -\frac{\partial}{\partial x}\left(Pu\right) - \frac{\partial}{\partial y} (Pv) $$
 
 $$ \textcolor{cell_centered_color}{\eta} = \frac{ \frac{\partial v}{\partial x} + \frac{\partial u}{\partial y} }{P} $$
 
@@ -120,5 +125,10 @@ $$ \textcolor{y_face_color}{[Pu]_{i,j}}  = \frac{ \textcolor{node_color}{P_{i,j}
 $$ \textcolor{x_face_color}{[Pv]_{i,j}} = \frac{\textcolor{node_color}{P_{i,j}} + \textcolor{node_color}{P_{i,j+1}}}{2} \textcolor{x_face_color}{v_{i,j}}$$
 
 $$ \textcolor{cell_centered_color}{\eta_{i,j}} = \frac{ \frac{ \textcolor{x_face_color}{v_{i+1,j}} - \textcolor{x_face_color}{v_{i,j}}}{dx} + \frac{ \textcolor{y_face_color}{u_{i,j+1}} - \textcolor{y_face_color}{u_{i,j}} }{dy} }{\frac{ \textcolor{node_color}{P_{i,j}} + \textcolor{node_color}{P_{i+1,j}} + \textcolor{node_color}{P_{i,j+1}} + \textcolor{node_color}{P_{i+1,j+1}} }{4} } $$
+
+
+
+
+$$ \frac{\partial \yfacecolor{u}}{\partial t} = \left( \frac{ \cellcolor{\eta_{i,j-1}} + \cellcolor{\eta_{i,j}} }{2} \right) \yfacecolor{ [P v]_{i,j} } - \frac{ \nodecolor{ h_{i+1,j} } -  \nodecolor{ h_{i,j} } }{dx}  $$
 
 \end{document}
