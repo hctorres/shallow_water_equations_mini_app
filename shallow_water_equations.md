@@ -73,13 +73,21 @@ Now the semi-descritized equation for the x velocity is:
 
 $$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial}{\partial x} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
-$$ \frac{\partial u}{\partial t} = \eta P v - \frac{\partial h}{\partial x} $$
+$$ \frac{\partial u}{\partial t} = \eta [P v] - \frac{\partial h}{\partial x} $$
 
-$$ \frac{\partial u}{\partial t} = \left( \frac{\eta_{i,j-1} + \eta_{i,j}}{2} \right) [P v]_{i,j} - \frac{h_{i+1,j} - h_{i,j}}{dx}  $$
+$$ \frac{\partial u}{\partial t} = \left( \frac{\eta_{i,j-1} + \eta_{i,j}}{2} \right) \left( \frac{ [P v]_{i,j-1} + [P v]_{i,j} + [P v]_{i+1,j-1} + [P v]_{i+1,j} }{4} \right) - \left(\frac{h_{i+1,j} - h_{i,j}}{dx} \right)  $$
+
+For the y velocity: 
+
+$$ \frac{\partial v}{\partial t} = -\eta P u - \frac{\partial}{\partial y} \left( P + \frac{1}{2} (u^2 + v^2) \right)$$
 
 
+$$ \frac{\partial v}{\partial t} = -\eta [P u] - \frac{\partial h}{\partial y}$$
 
+$$ \frac{\partial v}{\partial t} = \left( \frac{\eta_{i-1,j} + \eta_{i,j}}{2} \right) \left( \frac{ [P u]_{i-1,j} + [P u]_{i-1,j+1} + [P u]_{i,j} + [P u]_{i,j+1} }{4} \right) - \left(\frac{h_{i,j+1} - h_{i,j}}{dy} \right)  $$
 
+For the pressure:
 
+$$ \frac{\partial P}{\partial t} = -\frac{\partial}{\partial x}\left(Pu\right) - \frac{\partial}{\partial y} (Pv) $$ 
 
-
+$$ \frac{\partial P_{i,j}}{\partial t} = - \left( \frac{ [Pu]_{i,j} - [Pu]_{i-1,j} }{dx} \right) - \left(  \frac{[Pv]_{i,j} - [Pu]_{i,j-1}}{dy} \right) $$
