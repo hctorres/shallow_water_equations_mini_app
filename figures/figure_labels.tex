@@ -132,6 +132,6 @@ $$ \frac{\partial \yfacecolor{u_{i,j}}}{\partial t} = \left( \frac{ \cellcolor{\
 
 $$ \frac{\partial \xfacecolor{v_{i,j}}}{\partial t} = \left( \frac{ \textcolor{cell_centered_color}{\eta_{i-1,j}} +  \textcolor{cell_centered_color}{\eta_{i,j}} }{2} \right) \left( \frac{ \yfacecolor{[P u]_{i-1,j}} + \yfacecolor{[P u]_{i-1,j+1}} + \yfacecolor{[P u]_{i,j}} + \yfacecolor{[P u]_{i,j+1}} }{4} \right) - \left( \frac{ \nodecolor{h_{i,j+1}} - \nodecolor{h_{i,j}} }{dy} \right)  $$
 
-$$ \frac{\partial \cellcolor{P_{i,j}}}{\partial t} = - \left( \frac{ [\yfacecolor{Pu]_{i,j}} - \yfacecolor{[Pu]_{i-1,j}} }{dx} \right) - \left(  \frac{ \xfacecolor{[Pv]_{i,j}} - \xfacecolor{[Pu]_{i,j-1}}}{dy} \right) $$
+$$ \frac{\partial \nodecolor{P_{i,j}}}{\partial t} = - \left( \frac{ \yfacecolor{[Pu]_{i,j}} - \yfacecolor{[Pu]_{i-1,j}} }{dx} \right) - \left(  \frac{ \xfacecolor{[Pv]_{i,j}} - \xfacecolor{[Pu]_{i,j-1}}}{dy} \right) $$
 
 \end{document}
