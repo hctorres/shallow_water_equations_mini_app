@@ -73,7 +73,43 @@ int main (int argc, char* argv[])
     amrex::IntVect dom_hi(n_cell-1, n_cell-1);
     
     amrex::Box cell_centered_box(dom_lo, dom_hi);
-    
+
+    // Initialize the boxarray "cell_box_array" from the single box "domain"
+    amrex::BoxArray cell_box_array;
+    cell_box_array.define(cell_centered_box);
+
+    amrex::Print() << "cell_box_array before max size " << cell_box_array << std::endl;
+
+    // Break up boxarray "cell_box_array" into chunks no larger than "max_grid_size" along a direction
+    cell_box_array.maxSize(max_grid_size);
+
+    amrex::Print() << "cell_box_array after max size " << cell_box_array << std::endl;
+
+    // Ncomp = number of components for each array
+    int Ncomp = 1;
+
+    // Nghost = number of ghost cells for each array
+    int Nghost = 1;
+
+    // How Boxes are distrubuted among MPI processes
+    amrex::DistributionMapping dm(cell_box_array);
+    amrex::Print() << "dm " << dm << std::endl;
+
+    amrex::MultiFab psi(cell_box_array, dm, Ncomp, Nghost);
+
+    amrex::BoxArray x_face_box_array = amrex::convert(cell_box_array, {1,0});
+    //amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
+    amrex::MultiFab v(x_face_box_array, dm, Ncomp, Nghost); 
+
+    amrex::BoxArray y_face_box_array = amrex::convert(cell_box_array, {0,1});
+    //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
+    amrex::MultiFab u(y_face_box_array, dm, Ncomp, Nghost);  
+
+    amrex::BoxArray surrounding_nodes_box_array= cell_box_array;
+    surrounding_nodes_box_array.surroundingNodes();
+    //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
+    amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, Nghost);
+
     amrex::Geometry geom;
     {
       amrex::RealBox real_box({ 0., 0.},
@@ -87,51 +123,13 @@ int main (int argc, char* argv[])
 
       // This defines a Geometry object
       //amrex::Geometry geom(cell_centered_box, real_box, coordinate_system, is_periodic);
-      //amrex::Geometry geom2(cell_centered_box, real_box, amrex::coordSys::Cartesian, is_periodic);
       geom.define(cell_centered_box, real_box, amrex::CoordSys::cartesian, is_periodic);
 
       amrex::Print() << "geom " << geom << std::endl;
     }
 
-    // Initialize the boxarray "ba" from the single box "domain"
-    amrex::BoxArray ba;
-    ba.define(cell_centered_box);
-
-    amrex::Print() << "ba before max size " << ba << std::endl;
-
-    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    ba.maxSize(max_grid_size);
-
-    amrex::Print() << "ba after max size " << ba << std::endl;
-
     // extract dx from the geometry object
     amrex::GpuArray<amrex::Real,2> dx = geom.CellSizeArray();
-
-    // Ncomp = number of components for each array
-    int Ncomp = 1;
-
-    // Nghost = number of ghost cells for each array
-    int Nghost = 1;
-
-    // How Boxes are distrubuted among MPI processes
-    amrex::DistributionMapping dm(ba);
-    amrex::Print() << "dm " << dm << std::endl;
-
-    amrex::MultiFab psi(ba, dm, Ncomp, Nghost);
-
-    amrex::BoxArray x_face_box_array = amrex::convert(ba, {1,0});
-    //amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
-    amrex::MultiFab v(x_face_box_array, dm, Ncomp, Nghost); // Only used to compute h later... I think we can get around this by not compting h at all nodes
-
-    amrex::BoxArray y_face_box_array = amrex::convert(ba, {0,1});
-    //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
-    amrex::MultiFab u(y_face_box_array, dm, Ncomp, Nghost);  // Only used to compute h later... I think we can get around this by not compting h at all nodes
-
-    amrex::BoxArray surrounding_nodes_box_array= ba;
-    surrounding_nodes_box_array.surroundingNodes();
-    //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
-    amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, Nghost);
-
 
     // **********************************
     // INITIALIZE DATA LOOP
@@ -163,8 +161,8 @@ int main (int argc, char* argv[])
 
     psi.FillBoundary(geom.periodicity());
 
-    // loop over nodal points
-    int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python script
+    // Initialize pressure... example of how loop over nodal points
+    int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python version
     double mesh_dx = 100000;
     double el = N*mesh_dx;
     amrex::Real pcf = (std::numbers::pi * std::numbers::pi * a * a)/(el * el);
@@ -185,6 +183,7 @@ int main (int argc, char* argv[])
     }
 
 
+    // Initialize x velocity... example of how loop over y-faces
     double mesh_dy = 100000;
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
     {
@@ -200,6 +199,7 @@ int main (int argc, char* argv[])
     }
 
 
+    // Initialize v velocity... example of how loop over x-faces
     for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
@@ -227,7 +227,8 @@ int main (int argc, char* argv[])
     amrex::Print() << "v max: " << v.max(0) << std::endl;
     amrex::Print() << "v min: " << v.min(0) << std::endl;
 
-    amrex::MultiFab output_values(ba, dm, 4, 0);
+    // Interpolate the values to the cell center for writing output
+    amrex::MultiFab output_values(cell_box_array, dm, 4, 0);
     for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
@@ -265,6 +266,10 @@ int main (int argc, char* argv[])
     // MAIN TIME EVOLUTION LOOP
     // **********************************
 
+    /////////////////////////////////////////////////
+    // Intermediate Values used in time stepping loop
+    /////////////////////////////////////////////////
+
     // cu on the y faces (same locaions as u)
     amrex::MultiFab cu(u.boxArray(), u.DistributionMap(), 1, u.nGrow());
 
@@ -289,13 +294,14 @@ int main (int argc, char* argv[])
     amrex::MultiFab::Copy(v_old, v, 0, 0, v.nComp(), v.nGrow());
     amrex::MultiFab::Copy(p_old, p, 0, 0, p.nComp(), p.nGrow());
 
+    // Constants used in time stepping loop
     double fsdx = 4.0/mesh_dx;
     double fsdy = 4.0/mesh_dy;
     double tdt = dt;
 
     for (int time_step = 0; time_step < nsteps; ++time_step)
     {
-        // fill periodic ghost cells
+        // fill ghost cells and periodic ghost cells 
         u.FillBoundary(geom.periodicity());
         v.FillBoundary(geom.periodicity());
         p.FillBoundary(geom.periodicity());
@@ -304,10 +310,12 @@ int main (int argc, char* argv[])
         {
             const amrex::Box& bx = mfi.validbox();
 
+            // Read only arrays
             const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
             const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
             const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
 
+            // Write arrays
             const amrex::Array4<amrex::Real>& cu_array = cu.array(mfi);
             const amrex::Array4<amrex::Real>& cv_array = cv.array(mfi);
             const amrex::Array4<amrex::Real>& h_array =   h.array(mfi);
@@ -327,6 +335,7 @@ int main (int argc, char* argv[])
         h.FillBoundary(geom.periodicity());
         z.FillBoundary(geom.periodicity());
 
+        // defined here because tdt changes after first time step
         double tdts8 = tdt/8.0;
         double tdtsdx = tdt/mesh_dx;
         double tdtsdy = tdt/mesh_dy;
