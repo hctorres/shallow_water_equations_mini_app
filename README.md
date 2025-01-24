@@ -29,5 +29,7 @@ Based on the NCAR SWM mini-app found [here](https://github.com/NCAR/SWM).
 
 ## Convenience Script
 - [run_local.sh](./run_local.sh)
-    - Build, run, and postprocess.  
-
+    - The environment variable SWM_AMREX_ROOT must be set to use this script. It should point to the top level of this repo. This script will: 
+        - Build. 
+        - Create a subdirectory called SWM_AMREX_ROOT/run_dir if it does not already exist. 
+        - Run and postprocess in that subdirectory. 
