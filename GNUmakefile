@@ -1,7 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
-#AMREX_HOME ?= ../../../amrex
-AMREX_HOME ?= /home/lalo/amrex
-
+# I recommend adding this to your environment before running make. However if it is not defined then it will get set here:
+AMREX_HOME ?= PROVIDE_YOUR_OWN_PATH_TO_AMREX_HERE
 
 DEBUG        = FALSE
 USE_MPI      = FALSE
