@@ -9,4 +9,4 @@ make
 ./main2d.gnu.ex inputs
 
 # Postprocess
-python plot.py
+python plot_with_yt.py

@@ -7,7 +7,7 @@ Based on the NCAR SWM mini-app found [here](https://github.com/NCAR/SWM).
     - Other compilers should also work fine but I have been using gcc/g++ for testing so far.
  - make
  - [AMReX](https://github.com/AMReX-Codes/amrex)
- - [yt](https://yt-project.org/) (Only needed if you want to run the postprocessing script plot.py)
+ - [yt](https://yt-project.org/) (Only needed if you want to run the postprocessing script [plot_with_yt.py](plot_with_yt.py))
 
 ## Build
 
