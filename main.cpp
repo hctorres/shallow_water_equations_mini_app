@@ -9,6 +9,8 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 
+#include "swm_mini_app_utils.h"
+
 
 int main (int argc, char* argv[])
 {
@@ -91,7 +93,6 @@ int main (int argc, char* argv[])
     // Nghost = number of ghost cells for each array
     int Nghost = 1;
 
-    // How Boxes are distrubuted among MPI processes
     amrex::DistributionMapping dm(cell_box_array);
     amrex::Print() << "dm " << dm << std::endl;
 
@@ -229,25 +230,6 @@ int main (int argc, char* argv[])
 
     // Interpolate the values to the cell center for writing output
     amrex::MultiFab output_values(cell_box_array, dm, 4, 0);
-    for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real const>& phi_old_array = psi.const_array(mfi);
-        const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
-        const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
-        const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
-
-        const amrex::Array4<amrex::Real>& output_values_array = output_values.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-            output_values_array(i,j,k,0) = phi_old_array(i,j,k);
-            output_values_array(i,j,k,1) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
-            output_values_array(i,j,k,2) = (u_array(i,j,k) + u_array(i,j+1,k))/2.0;
-            output_values_array(i,j,k,3) = (v_array(i,j,k) + v_array(i+1,j,k))/2.0;
-        });
-    }
 
     // **********************************
     // WRITE INITIAL PLOT FILE
@@ -258,8 +240,7 @@ int main (int argc, char* argv[])
     if (plot_int > 0)
     {
         int time_step = 0;
-        const std::string& pltfile = amrex::Concatenate("plt",time_step,5);
-        WriteSingleLevelPlotfile(pltfile, output_values, {"psi", "p", "u", "v"}, geom, time, 0);
+        write_output(output_values, psi, p, u, v, geom, time, time_step);
     }
 
     // **********************************
@@ -425,28 +406,7 @@ int main (int argc, char* argv[])
         // Write a plotfile of the current data (plot_int was defined in the inputs file)
         if (plot_int > 0 && time_step%plot_int == 0)
         {
-            for (amrex::MFIter mfi(output_values); mfi.isValid(); ++mfi)
-            {
-                const amrex::Box& bx = mfi.validbox();
-
-                const amrex::Array4<amrex::Real const>& phi_old_array = psi.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
-
-                const amrex::Array4<amrex::Real>& output_values_array = output_values.array(mfi);
-
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-                {
-                    output_values_array(i,j,k,0) = phi_old_array(i,j,k);
-                    output_values_array(i,j,k,1) = (p_array(i,j,k) + p_array(i+1,j,k) + p_array(i,j+1,k) + p_array(i+1,j+1,k))/4.0;
-                    output_values_array(i,j,k,2) = (u_array(i,j,k) + u_array(i,j+1,k))/2.0;
-                    output_values_array(i,j,k,3) = (v_array(i,j,k) + v_array(i+1,j,k))/2.0;
-                });
-            }
-
-            const std::string& pltfile = amrex::Concatenate("plt",time_step,5);
-            WriteSingleLevelPlotfile(pltfile, output_values, {"psi", "p", "u", "v"}, geom, time, time_step);
+            write_output(output_values, psi, p, u, v, geom, time, time_step);
         }
 
         //amrex::Print() << "Done with time step " << time_step << std::endl;
