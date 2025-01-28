@@ -3,7 +3,7 @@
 
 ## Initialization
 
-$$ \psi = a \sin(x) \cos(y) $$
+$$ \psi = a \sin(x) \sin(y) $$
 
 From the steam function we compute the velocity field. Is it a stream function? The value $a = 1000000$ is used.
 

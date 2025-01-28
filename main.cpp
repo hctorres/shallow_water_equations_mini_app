@@ -17,18 +17,18 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc,argv);
     {
 
-    // **********************************
-    // DECLARE SIMULATION PARAMETERS
-    // **********************************
+    // *************************************************************
+    // Simulation Parameters Set Via Input File
+    // *************************************************************
 
     // number of cells on each side of the domain
     int n_cell;
 
-    // size of each box (or grid)
+    // size of each box
     int max_grid_size;
 
-    // total steps in simulation
-    int nsteps;
+    // number of time steps in simulation
+    int n_time_steps;
 
     // how often to write a plotfile
     int plot_int;
@@ -53,9 +53,9 @@ int main (int argc, char* argv[])
         // The domain is broken into boxes of size max_grid_size
         pp.get("max_grid_size",max_grid_size);
 
-        // Default nsteps to 10, allow us to set it to something else in the inputs file
-        nsteps = 10;
-        pp.query("nsteps",nsteps);
+        // Default n_time_steps to 10, allow us to set it to something else in the inputs file
+        n_time_steps = 10;
+        pp.query("n_time_steps",n_time_steps);
 
         // Default plot_int to -1, allow us to set it to something else in the inputs file
         //  If plot_int < 0 then no plot files will be written
@@ -80,12 +80,8 @@ int main (int argc, char* argv[])
     amrex::BoxArray cell_box_array;
     cell_box_array.define(cell_centered_box);
 
-    amrex::Print() << "cell_box_array before max size " << cell_box_array << std::endl;
-
     // Break up boxarray "cell_box_array" into chunks no larger than "max_grid_size" along a direction
     cell_box_array.maxSize(max_grid_size);
-
-    amrex::Print() << "cell_box_array after max size " << cell_box_array << std::endl;
 
     // Ncomp = number of components for each array
     int Ncomp = 1;
@@ -93,23 +89,27 @@ int main (int argc, char* argv[])
     // Nghost = number of ghost cells for each array
     int Nghost = 1;
 
-    amrex::DistributionMapping dm(cell_box_array);
-    amrex::Print() << "dm " << dm << std::endl;
+    amrex::DistributionMapping distribution_mapping(cell_box_array);
 
-    amrex::MultiFab psi(cell_box_array, dm, Ncomp, Nghost);
+    amrex::MultiFab psi(cell_box_array, distribution_mapping, Ncomp, Nghost);
 
     amrex::BoxArray x_face_box_array = amrex::convert(cell_box_array, {1,0});
-    //amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
-    amrex::MultiFab v(x_face_box_array, dm, Ncomp, Nghost); 
+    amrex::MultiFab v(x_face_box_array, distribution_mapping, Ncomp, Nghost); 
 
     amrex::BoxArray y_face_box_array = amrex::convert(cell_box_array, {0,1});
-    //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
-    amrex::MultiFab u(y_face_box_array, dm, Ncomp, Nghost);  
+    amrex::MultiFab u(y_face_box_array, distribution_mapping, Ncomp, Nghost);  
 
-    amrex::BoxArray surrounding_nodes_box_array= cell_box_array;
+    amrex::BoxArray surrounding_nodes_box_array = cell_box_array;
     surrounding_nodes_box_array.surroundingNodes();
+    amrex::MultiFab p(surrounding_nodes_box_array, distribution_mapping, Ncomp, Nghost);
+
+    //amrex::Print() << "distribution_mapping " << distribution_mapping << std::endl;
+    //amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
+    //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
     //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
-    amrex::MultiFab p(surrounding_nodes_box_array, dm, Ncomp, Nghost);
+
+    double mesh_dx = 100000;
+    double mesh_dy = mesh_dx; // Force the mesh to have square elements
 
     amrex::Geometry geom;
     {
@@ -136,35 +136,11 @@ int main (int argc, char* argv[])
     // INITIALIZE DATA LOOP
     // **********************************
 
-    // coeffiecent for initialization of stream function
-    amrex::Real a = 1000000;
-
-    // loop over cell centers
-    for (amrex::MFIter mfi(psi); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real>& phi_array = psi.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-
-            // **********************************
-            // SET VALUES FOR EACH CELL
-            // **********************************
-
-            amrex::Real x_cell_center = (i+0.5) * dx[0];
-            amrex::Real y_cell_center = (j+0.5) * dx[1];
-
-            phi_array(i,j,k) = a*std::sin(x_cell_center)*std::sin(y_cell_center);
-        });
-    }
-
-    psi.FillBoundary(geom.periodicity());
+    initialize_psi(psi, geom);
 
     // Initialize pressure... example of how loop over nodal points
+    const amrex::Real a = 1000000; // Careful because this is double defined currently. It is used to initialize psi.
     int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python version
-    double mesh_dx = 100000;
     double el = N*mesh_dx;
     amrex::Real pcf = (std::numbers::pi * std::numbers::pi * a * a)/(el * el);
 
@@ -185,7 +161,6 @@ int main (int argc, char* argv[])
 
 
     // Initialize x velocity... example of how loop over y-faces
-    double mesh_dy = 100000;
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
@@ -229,7 +204,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "v min: " << v.min(0) << std::endl;
 
     // Interpolate the values to the cell center for writing output
-    amrex::MultiFab output_values(cell_box_array, dm, 4, 0);
+    amrex::MultiFab output_values(cell_box_array, distribution_mapping, 4, 0);
 
     // **********************************
     // WRITE INITIAL PLOT FILE
@@ -280,7 +255,7 @@ int main (int argc, char* argv[])
     double fsdy = 4.0/mesh_dy;
     double tdt = dt;
 
-    for (int time_step = 0; time_step < nsteps; ++time_step)
+    for (int time_step = 0; time_step < n_time_steps; ++time_step)
     {
         // fill ghost cells and periodic ghost cells 
         u.FillBoundary(geom.periodicity());

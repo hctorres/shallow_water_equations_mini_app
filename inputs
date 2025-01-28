@@ -1,7 +1,7 @@
 n_cell = 64
 max_grid_size = 100000
 
-nsteps = 4000
+n_time_steps = 4000
 plot_int = 100
 
 dt = 90
