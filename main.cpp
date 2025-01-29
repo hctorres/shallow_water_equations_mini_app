@@ -50,38 +50,48 @@ int main (int argc, char* argv[])
     // Define simulation setup and geometry
     // ***********************************************************************
 
-    // define lower and upper indices
-    amrex::IntVect dom_lo(0,0);
-    amrex::IntVect dom_hi(nx-1, ny-1);
-    
-    amrex::Box cell_centered_box(dom_lo, dom_hi);
+    amrex::MultiFab psi;
+    {
+        // lower and upper indices of domain
+        const amrex::IntVect domain_low_index(0,0);
+        const amrex::IntVect domain_high_index(nx-1, ny-1);
+      
+        // create box of indicies for cells
+        const amrex::Box cell_centered_box(domain_low_index, domain_high_index);
 
-    // Initialize the boxarray "cell_box_array" from the single box "domain"
-    amrex::BoxArray cell_box_array;
-    cell_box_array.define(cell_centered_box);
+        // Initialize the boxarray "cell_box_array" from the single box "domain"
+        amrex::BoxArray cell_box_array;
+        cell_box_array.define(cell_centered_box);
 
-    // Break up boxarray "cell_box_array" into chunks no larger than "max_chunk_size" along a direction
-    cell_box_array.maxSize(max_chunk_size);
+        // Break up boxarray "cell_box_array" into chunks no larger than "max_chunk_size" along a direction
+        cell_box_array.maxSize(max_chunk_size);
 
-    // Ncomp = number of components for each array
-    int Ncomp = 1;
+        // Ncomp = number of components for each array
+        int Ncomp = 1;
 
-    // Nghost = number of ghost cells for each array
-    int Nghost = 1;
+        // Nghost = number of ghost cells for each array
+        int Nghost = 1;
 
-    amrex::DistributionMapping distribution_mapping(cell_box_array);
+        amrex::DistributionMapping distribution_mapping(cell_box_array);
 
-    amrex::MultiFab psi(cell_box_array, distribution_mapping, Ncomp, Nghost);
+        psi.define(cell_box_array, distribution_mapping, Ncomp, Nghost);
+    }
+
+    amrex::BoxArray cell_box_array = psi.boxArray();
+    //amrex::DistributionMapping distribution_mapping = psi.DistributionMap();
 
     amrex::BoxArray x_face_box_array = amrex::convert(cell_box_array, {1,0});
-    amrex::MultiFab v(x_face_box_array, distribution_mapping, Ncomp, Nghost); 
+    //amrex::MultiFab v(x_face_box_array, distribution_mapping, Ncomp, Nghost); 
+    amrex::MultiFab v(x_face_box_array, psi.DistributionMap(), psi.nComp(), psi.nGrow());
 
     amrex::BoxArray y_face_box_array = amrex::convert(cell_box_array, {0,1});
-    amrex::MultiFab u(y_face_box_array, distribution_mapping, Ncomp, Nghost);  
+    //amrex::MultiFab u(y_face_box_array, distribution_mapping, Ncomp, Nghost);  
+    amrex::MultiFab u(y_face_box_array, psi.DistributionMap(), psi.nComp(), psi.nGrow());
 
     amrex::BoxArray surrounding_nodes_box_array = cell_box_array;
     surrounding_nodes_box_array.surroundingNodes();
-    amrex::MultiFab p(surrounding_nodes_box_array, distribution_mapping, Ncomp, Nghost);
+    //amrex::MultiFab p(surrounding_nodes_box_array, distribution_mapping, Ncomp, Nghost);
+    amrex::MultiFab p(surrounding_nodes_box_array, psi.DistributionMap(), psi.nComp(), psi.nGrow());
 
     //amrex::Print() << "distribution_mapping " << distribution_mapping << std::endl;
     //amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
@@ -114,7 +124,7 @@ int main (int argc, char* argv[])
     amrex::Real time = 0.0;
 
     // Interpolate the values to the cell center for writing output
-    amrex::MultiFab output_values(cell_box_array, distribution_mapping, 4, 0);
+    amrex::MultiFab output_values(psi.boxArray(), psi.DistributionMap(), 4, 0);
 
     if (plot_interval > 0)
     {
@@ -126,7 +136,7 @@ int main (int argc, char* argv[])
     // Intermediate Values used in time stepping loop
     // **********************************************
 
-    // cu on the y faces (same locaions as u)
+    // cu on the y faces (same locations as u)
     amrex::MultiFab cu(u.boxArray(), u.DistributionMap(), 1, u.nGrow());
 
     // cv on the x faces (same locations as v)
