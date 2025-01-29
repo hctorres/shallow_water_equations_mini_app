@@ -2,9 +2,41 @@
 #include <cmath>
 
 #include <AMReX.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
 #include "swm_mini_app_utils.h"
+
+
+void parse_input(int & nx, int & ny,
+                 amrex::Real & dx, amrex::Real & dy,
+                 int & max_chunk_size,
+                 int & n_time_steps, amrex::Real & dt,
+                 int & plot_interval)
+{
+    // ParmParse is way of reading inputs from the inputs file
+    // pp.get means we require the inputs file to have it
+    // pp.query means we optionally need the inputs file to have it - but we must supply a default here
+    amrex::ParmParse pp;
+
+    pp.get("nx",nx);
+    pp.get("ny",ny);
+
+    pp.get("dx",dx);
+    pp.get("dy",dy);
+
+    pp.get("max_chunk_size",max_chunk_size);
+
+    pp.get("n_time_steps",n_time_steps);
+
+    pp.get("dt",dt);
+
+    // Default plot_interval to -1, allow us to set it to something else in the inputs file
+    //  If plot_interval < 0 then no plot files will be written
+    plot_interval = -1;
+    pp.query("plot_interval",plot_interval);
+
+}
 
 amrex::Real linear_map_coordinates(const amrex::Real x, 
                                    const amrex::Real x_min, const amrex::Real x_max,

@@ -39,37 +39,12 @@ int main (int argc, char* argv[])
     amrex::Real dt;
 
     // how often to write a plotfile
+    //     Optional argument. If left out no plot files will be written.
     int plot_interval;
 
-    // **********************************
     // Read parameter values from input data
-    // **********************************
-    // inputs parameters
-    {
-        // ParmParse is way of reading inputs from the inputs file
-        // pp.get means we require the inputs file to have it
-        // pp.query means we optionally need the inputs file to have it - but we must supply a default here
-        amrex::ParmParse pp;
-
-        pp.get("nx",nx);
-        pp.get("ny",ny);
-
-        pp.get("dx",dx);
-        pp.get("dy",dy);
-
-        // The domain is broken into boxes of size max_chunk_size
-        pp.get("max_chunk_size",max_chunk_size);
-
-        pp.get("n_time_steps",n_time_steps);
-
-        pp.get("dt",dt);
-
-        // Default plot_interval to -1, allow us to set it to something else in the inputs file
-        //  If plot_interval < 0 then no plot files will be written
-        plot_interval = -1;
-        pp.query("plot_interval",plot_interval);
-
-    }
+    parse_input(nx, ny, dx, dy, max_chunk_size,
+                n_time_steps, dt, plot_interval);
 
     // **********************************
     // Define simulation setup and geometry

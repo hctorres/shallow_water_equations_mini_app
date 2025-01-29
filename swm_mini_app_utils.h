@@ -3,6 +3,12 @@
 
 #include <AMReX.H>
 
+void parse_input(int & nx, int & ny,
+                 amrex::Real & dx, amrex::Real & dy,
+                 int & max_chunk_size,
+                 int & n_time_steps, amrex::Real & dt,
+                 int & plot_interval);
+
 // Linear mapping of a value (x) from one interval [x_min, x_max] to another [xi_min, xi_max].
 // Precondition: x_min <= x <= x_max
 amrex::Real linear_map_coordinates(const amrex::Real x, 
