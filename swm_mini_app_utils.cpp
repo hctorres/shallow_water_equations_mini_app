@@ -75,11 +75,11 @@ amrex::Real linear_map_coordinates(const amrex::Real x,
     return x_min + ((xi_max-xi_min)/(x_max-x_min))*x;
 }
 
-void initialize_variables(amrex::MultiFab & psi,
+void initialize_variables(const amrex::Geometry & geom,
+                          amrex::MultiFab & psi,
                           amrex::MultiFab & p,
                           amrex::MultiFab & u,
-                          amrex::MultiFab & v,
-                          const amrex::Geometry geom)
+                          amrex::MultiFab & v)
 {
 
     const amrex::Real x_min = geom.ProbLo(0);
@@ -187,14 +187,14 @@ void initialize_variables(amrex::MultiFab & psi,
 }
 
 
-void write_output( amrex::MultiFab & output_values,
-                   const amrex::MultiFab & psi,
-                   const amrex::MultiFab & p,
-                   const amrex::MultiFab & u,
-                   const amrex::MultiFab & v,
-                   const amrex::Geometry geom,
-                   const amrex::Real time,
-                   const int time_step) 
+void write_output(const amrex::MultiFab & psi,
+                  const amrex::MultiFab & p,
+                  const amrex::MultiFab & u,
+                  const amrex::MultiFab & v,
+                  const amrex::Geometry & geom,
+                  const amrex::Real time,
+                  const int time_step,
+                  amrex::MultiFab & output_values)
 {
 
     // Interpolate all values to cell centers

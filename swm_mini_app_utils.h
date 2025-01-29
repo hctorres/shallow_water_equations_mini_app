@@ -21,21 +21,19 @@ amrex::Real linear_map_coordinates(const amrex::Real x,
                                    const amrex::Real x_min,  const amrex::Real x_max,
                                    const amrex::Real xi_min, const amrex::Real xi_max);
 
-void initialize_variables(amrex::MultiFab & psi,
+void initialize_variables(const amrex::Geometry & geom,
+                          amrex::MultiFab & psi,
                           amrex::MultiFab & p,
                           amrex::MultiFab & u,
-                          amrex::MultiFab & v,
-                         const amrex::Geometry geom);
+                          amrex::MultiFab & v);
 
-void write_output( amrex::MultiFab & output_values,
-                   const amrex::MultiFab & psi,
-                   const amrex::MultiFab & p,
-                   const amrex::MultiFab & u,
-                   const amrex::MultiFab & v,
-                   const amrex::Geometry geom,
-                   const amrex::Real time,
-                   const int time_step);
-
-
+void write_output(const amrex::MultiFab & psi,
+                  const amrex::MultiFab & p,
+                  const amrex::MultiFab & u,
+                  const amrex::MultiFab & v,
+                  const amrex::Geometry & geom,
+                  const amrex::Real time,
+                  const int time_step,
+                  amrex::MultiFab & output_values);
 
 #endif // SWM_MINI_APP_UTILS_H_

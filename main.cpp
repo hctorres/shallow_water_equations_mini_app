@@ -29,7 +29,7 @@ int main (int argc, char* argv[])
     amrex::Real dx;
     amrex::Real dy;
 
-    // mesh will be broken into chunks of max_chunk_size
+    // mesh will be broken into chunks of up to max_chunk_size
     int max_chunk_size;
 
     // number of time steps to take
@@ -95,7 +95,7 @@ int main (int argc, char* argv[])
     // Initialize Data
     // **********************************
 
-    initialize_variables(psi, p, u, v, geom);
+    initialize_variables(geom, psi, p, u, v);
 
     amrex::Print() << "Initial: " << std::endl;
     amrex::Print() << "psi max: " << psi.max(0) << std::endl;
@@ -106,7 +106,6 @@ int main (int argc, char* argv[])
     amrex::Print() << "u min: " << u.min(0) << std::endl;
     amrex::Print() << "v max: " << v.max(0) << std::endl;
     amrex::Print() << "v min: " << v.min(0) << std::endl;
-
 
     // **********************************
     // Write initial plot file
@@ -120,7 +119,7 @@ int main (int argc, char* argv[])
     if (plot_interval > 0)
     {
         int time_step = 0;
-        write_output(output_values, psi, p, u, v, geom, time, time_step);
+        write_output(psi, p, u, v, geom, time, time_step, output_values);
     }
 
     // **********************************************
@@ -282,7 +281,7 @@ int main (int argc, char* argv[])
         // Write a plotfile of the current data (plot_interval was defined in the inputs file)
         if (plot_interval > 0 && time_step%plot_interval == 0)
         {
-            write_output(output_values, psi, p, u, v, geom, time, time_step);
+            write_output(psi, p, u, v, geom, time, time_step, output_values);
         }
 
         //amrex::Print() << "Done with time step " << time_step << std::endl;
