@@ -12,6 +12,16 @@ amrex::Real linear_map_coordinates(const amrex::Real x,
 void initialize_psi(amrex::MultiFab & psi,
                     const amrex::Geometry geom);
 
+void initialize_p(amrex::MultiFab & p,
+                  const amrex::Geometry geom);
+
+
+void initialize_variables(amrex::MultiFab & psi,
+                          amrex::MultiFab & p,
+                          amrex::MultiFab & u,
+                          amrex::MultiFab & v,
+                         const amrex::Geometry geom);
+
 void write_output( amrex::MultiFab & output_values,
                    const amrex::MultiFab & psi,
                    const amrex::MultiFab & p,

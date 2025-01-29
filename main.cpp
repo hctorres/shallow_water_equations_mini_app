@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
     amrex::Real dt;
 
     // **********************************
-    // READ PARAMETER VALUES FROM INPUT DATA
+    // Read parameter values from input data
     // **********************************
     // inputs parameters
     {
@@ -67,7 +67,7 @@ int main (int argc, char* argv[])
     }
 
     // **********************************
-    // DEFINE SIMULATION SETUP AND GEOMETRY
+    // Define simulation setup and geometry
     // **********************************
 
     // define lower and upper indices
@@ -108,13 +108,13 @@ int main (int argc, char* argv[])
     //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
     //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
 
-    double mesh_dx = 100000;
-    double mesh_dy = mesh_dx; // Force the mesh to have square elements
+    double dx = 100000;
+    double dy = dx; // Force the mesh to have square elements
 
     amrex::Geometry geom;
     {
       amrex::RealBox real_box({ 0., 0.},
-                       { 2*std::numbers::pi, 2*std::numbers::pi});
+                       { n_cell*dx, n_cell*dy});
 
       // This, a value of 0, says we are using Cartesian coordinates
       //int coordinate_system = 0;
@@ -129,69 +129,11 @@ int main (int argc, char* argv[])
       amrex::Print() << "geom " << geom << std::endl;
     }
 
-    // extract dx from the geometry object
-    amrex::GpuArray<amrex::Real,2> dx = geom.CellSizeArray();
-
     // **********************************
-    // INITIALIZE DATA LOOP
+    // Initialize Data
     // **********************************
 
-    initialize_psi(psi, geom);
-
-    // Initialize pressure... example of how loop over nodal points
-    const amrex::Real a = 1000000; // Careful because this is double defined currently. It is used to initialize psi.
-    int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python version
-    double el = N*mesh_dx;
-    amrex::Real pcf = (std::numbers::pi * std::numbers::pi * a * a)/(el * el);
-
-    for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real>& p_array = p.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-            amrex::Real x_node = i * dx[0];
-            amrex::Real y_node = j * dx[1];
-
-            p_array(i,j,k) = pcf * (std::cos(2*x_node) + std::cos(2*y_node)) + 5000;
-        });
-    }
-
-
-    // Initialize x velocity... example of how loop over y-faces
-    for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real>& u_array = u.array(mfi);
-        const amrex::Array4<amrex::Real>& phi_old_array = psi.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-            u_array(i,j,k) = -(phi_old_array(i,j,k)-phi_old_array(i,j-1,k))/mesh_dy;
-        });
-    }
-
-
-    // Initialize v velocity... example of how loop over x-faces
-    for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real>& v_array = v.array(mfi);
-        const amrex::Array4<amrex::Real>& phi_old_array = psi.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-            v_array(i,j,k) = (phi_old_array(i,j,k)-phi_old_array(i-1,j,k))/mesh_dx;
-        });
-    }
-
-    p.FillBoundary(geom.periodicity());
-    u.FillBoundary(geom.periodicity());
-    v.FillBoundary(geom.periodicity());
+    initialize_variables(psi, p, u, v, geom);
 
     amrex::Print() << "Initial: " << std::endl;
     amrex::Print() << "psi max: " << psi.max(0) << std::endl;
@@ -203,14 +145,15 @@ int main (int argc, char* argv[])
     amrex::Print() << "v max: " << v.max(0) << std::endl;
     amrex::Print() << "v min: " << v.min(0) << std::endl;
 
-    // Interpolate the values to the cell center for writing output
-    amrex::MultiFab output_values(cell_box_array, distribution_mapping, 4, 0);
 
     // **********************************
-    // WRITE INITIAL PLOT FILE
+    // Write initial plot file
     // **********************************
 
     amrex::Real time = 0.0;
+
+    // Interpolate the values to the cell center for writing output
+    amrex::MultiFab output_values(cell_box_array, distribution_mapping, 4, 0);
 
     if (plot_int > 0)
     {
@@ -251,8 +194,8 @@ int main (int argc, char* argv[])
     amrex::MultiFab::Copy(p_old, p, 0, 0, p.nComp(), p.nGrow());
 
     // Constants used in time stepping loop
-    double fsdx = 4.0/mesh_dx;
-    double fsdy = 4.0/mesh_dy;
+    double fsdx = 4.0/dx;
+    double fsdy = 4.0/dy;
     double tdt = dt;
 
     for (int time_step = 0; time_step < n_time_steps; ++time_step)
@@ -293,8 +236,8 @@ int main (int argc, char* argv[])
 
         // defined here because tdt changes after first time step
         double tdts8 = tdt/8.0;
-        double tdtsdx = tdt/mesh_dx;
-        double tdtsdy = tdt/mesh_dy;
+        double tdtsdx = tdt/dx;
+        double tdtsdy = tdt/dy;
 
         for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
         {
