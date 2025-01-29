@@ -38,6 +38,36 @@ void parse_input(int & nx, int & ny,
 
 }
 
+void initialize_geometry(const int nx, const int ny,
+                         const amrex::Real dx, const amrex::Real dy,
+                         amrex::Geometry & geom)
+{
+  // lower and upper indices of domain
+  const amrex::IntVect domain_low_index(0,0);
+  const amrex::IntVect domain_high_index(nx-1, ny-1);
+
+  // create box of indicies for cells
+  const amrex::Box cell_centered_box(domain_low_index, domain_high_index);
+
+  // physical min and max boundaries of cells
+  const amrex::RealBox real_box({0, 0},
+                                {nx*dx, ny*dy});
+
+  // This, a value of 0, says we are using Cartesian coordinates
+  int coordinate_system = 0;
+
+  // This sets the boundary conditions in each direction to periodic
+  amrex::Array<int,AMREX_SPACEDIM> is_periodic {1,1};
+
+  // This defines a Geometry object
+  geom.define(cell_centered_box, real_box, coordinate_system, is_periodic);
+ // geom.define(cell_centered_box, real_box, amrex::CoordSys::cartesian, is_periodic);
+
+  //amrex::Print() << "geom " << geom << std::endl;
+
+  return;
+}
+
 amrex::Real linear_map_coordinates(const amrex::Real x, 
                                    const amrex::Real x_min, const amrex::Real x_max,
                                    const amrex::Real xi_min, const amrex::Real xi_max)

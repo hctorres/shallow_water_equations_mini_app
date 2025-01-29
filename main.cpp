@@ -17,9 +17,9 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc,argv);
     {
 
-    // *************************************************************
+    // ***********************************************************************
     // Simulation Parameters Set Via Input File
-    // *************************************************************
+    // ***********************************************************************
 
     // number of cells on each direction
     int nx;
@@ -42,13 +42,13 @@ int main (int argc, char* argv[])
     //     Optional argument. If left out no plot files will be written.
     int plot_interval;
 
-    // Read parameter values from input data
+    // Set parameter values from inputs file
     parse_input(nx, ny, dx, dy, max_chunk_size,
                 n_time_steps, dt, plot_interval);
 
-    // **********************************
+    // ***********************************************************************
     // Define simulation setup and geometry
-    // **********************************
+    // ***********************************************************************
 
     // define lower and upper indices
     amrex::IntVect dom_lo(0,0);
@@ -89,23 +89,8 @@ int main (int argc, char* argv[])
     //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
 
     amrex::Geometry geom;
-    {
-      amrex::RealBox real_box({ 0., 0.},
-                       { nx*dx, ny*dy});
-
-      // This, a value of 0, says we are using Cartesian coordinates
-      //int coordinate_system = 0;
-
-      // This sets the boundary conditions in each direction to periodic
-      amrex::Array<int,AMREX_SPACEDIM> is_periodic {1,1};
-
-      // This defines a Geometry object
-      //amrex::Geometry geom(cell_centered_box, real_box, coordinate_system, is_periodic);
-      geom.define(cell_centered_box, real_box, amrex::CoordSys::cartesian, is_periodic);
-
-      amrex::Print() << "geom " << geom << std::endl;
-    }
-
+    initialize_geometry(nx, ny, dx, dy, geom);
+    
     // **********************************
     // Initialize Data
     // **********************************
@@ -138,9 +123,9 @@ int main (int argc, char* argv[])
         write_output(output_values, psi, p, u, v, geom, time, time_step);
     }
 
-    /////////////////////////////////////////////////
+    // **********************************************
     // Intermediate Values used in time stepping loop
-    /////////////////////////////////////////////////
+    // **********************************************
 
     // cu on the y faces (same locaions as u)
     amrex::MultiFab cu(u.boxArray(), u.DistributionMap(), 1, u.nGrow());

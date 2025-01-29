@@ -9,6 +9,12 @@ void parse_input(int & nx, int & ny,
                  int & n_time_steps, amrex::Real & dt,
                  int & plot_interval);
 
+
+void initialize_geometry(const int nx, const int ny,
+                         const amrex::Real dx, const amrex::Real dy,
+                         amrex::Geometry & geom);
+
+
 // Linear mapping of a value (x) from one interval [x_min, x_max] to another [xi_min, xi_max].
 // Precondition: x_min <= x <= x_max
 amrex::Real linear_map_coordinates(const amrex::Real x, 
