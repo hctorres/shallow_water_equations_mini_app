@@ -21,20 +21,25 @@ int main (int argc, char* argv[])
     // Simulation Parameters Set Via Input File
     // *************************************************************
 
-    // number of cells on each side of the domain
-    int n_cell;
+    // number of cells on each direction
+    int nx;
+    int ny;
 
-    // size of each box
-    int max_grid_size;
+    // cell size in each direction
+    amrex::Real dx;
+    amrex::Real dy;
 
-    // number of time steps in simulation
+    // mesh will be broken into chunks of max_chunk_size
+    int max_chunk_size;
+
+    // number of time steps to take
     int n_time_steps;
 
-    // how often to write a plotfile
-    int plot_int;
-
-    // time step
+    // size of time step
     amrex::Real dt;
+
+    // how often to write a plotfile
+    int plot_interval;
 
     // **********************************
     // Read parameter values from input data
@@ -46,24 +51,24 @@ int main (int argc, char* argv[])
         // pp.query means we optionally need the inputs file to have it - but we must supply a default here
         amrex::ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
+        pp.get("nx",nx);
+        pp.get("ny",ny);
 
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
+        pp.get("dx",dx);
+        pp.get("dy",dy);
 
-        // Default n_time_steps to 10, allow us to set it to something else in the inputs file
-        n_time_steps = 10;
-        pp.query("n_time_steps",n_time_steps);
+        // The domain is broken into boxes of size max_chunk_size
+        pp.get("max_chunk_size",max_chunk_size);
 
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be written
-        plot_int = -1;
-        pp.query("plot_int",plot_int);
+        pp.get("n_time_steps",n_time_steps);
 
-        // time step
         pp.get("dt",dt);
+
+        // Default plot_interval to -1, allow us to set it to something else in the inputs file
+        //  If plot_interval < 0 then no plot files will be written
+        plot_interval = -1;
+        pp.query("plot_interval",plot_interval);
+
     }
 
     // **********************************
@@ -72,7 +77,7 @@ int main (int argc, char* argv[])
 
     // define lower and upper indices
     amrex::IntVect dom_lo(0,0);
-    amrex::IntVect dom_hi(n_cell-1, n_cell-1);
+    amrex::IntVect dom_hi(nx-1, ny-1);
     
     amrex::Box cell_centered_box(dom_lo, dom_hi);
 
@@ -80,8 +85,8 @@ int main (int argc, char* argv[])
     amrex::BoxArray cell_box_array;
     cell_box_array.define(cell_centered_box);
 
-    // Break up boxarray "cell_box_array" into chunks no larger than "max_grid_size" along a direction
-    cell_box_array.maxSize(max_grid_size);
+    // Break up boxarray "cell_box_array" into chunks no larger than "max_chunk_size" along a direction
+    cell_box_array.maxSize(max_chunk_size);
 
     // Ncomp = number of components for each array
     int Ncomp = 1;
@@ -108,13 +113,10 @@ int main (int argc, char* argv[])
     //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
     //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
 
-    double dx = 100000;
-    double dy = dx; // Force the mesh to have square elements
-
     amrex::Geometry geom;
     {
       amrex::RealBox real_box({ 0., 0.},
-                       { n_cell*dx, n_cell*dy});
+                       { nx*dx, ny*dy});
 
       // This, a value of 0, says we are using Cartesian coordinates
       //int coordinate_system = 0;
@@ -155,7 +157,7 @@ int main (int argc, char* argv[])
     // Interpolate the values to the cell center for writing output
     amrex::MultiFab output_values(cell_box_array, distribution_mapping, 4, 0);
 
-    if (plot_int > 0)
+    if (plot_interval > 0)
     {
         int time_step = 0;
         write_output(output_values, psi, p, u, v, geom, time, time_step);
@@ -317,8 +319,8 @@ int main (int argc, char* argv[])
 
         }
 
-        // Write a plotfile of the current data (plot_int was defined in the inputs file)
-        if (plot_int > 0 && time_step%plot_int == 0)
+        // Write a plotfile of the current data (plot_interval was defined in the inputs file)
+        if (plot_interval > 0 && time_step%plot_interval == 0)
         {
             write_output(output_values, psi, p, u, v, geom, time, time_step);
         }

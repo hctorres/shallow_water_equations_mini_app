@@ -1,7 +1,13 @@
-n_cell = 64
-max_grid_size = 100000
+nx = 64
+ny = 64
+
+dx = 100000
+dy = 100000
+
+max_chunk_size = 100000
 
 n_time_steps = 4000
-plot_int = 100
 
 dt = 90
+
+plot_int = 100
