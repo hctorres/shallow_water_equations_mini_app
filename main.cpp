@@ -161,10 +161,6 @@ int main (int argc, char* argv[])
         write_output(output_values, psi, p, u, v, geom, time, time_step);
     }
 
-    // **********************************
-    // MAIN TIME EVOLUTION LOOP
-    // **********************************
-
     /////////////////////////////////////////////////
     // Intermediate Values used in time stepping loop
     /////////////////////////////////////////////////

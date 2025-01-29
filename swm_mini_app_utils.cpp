@@ -13,112 +13,12 @@ amrex::Real linear_map_coordinates(const amrex::Real x,
     return x_min + ((xi_max-xi_min)/(x_max-x_min))*x;
 }
 
-void initialize_psi(amrex::MultiFab & psi,
-                    const amrex::Geometry geom)
-{
-    // coefficient for initialization of stream function
-    const amrex::Real a = 1000000;
-
-    const amrex::Real x_min = geom.ProbLo(0);
-    const amrex::Real x_max = geom.ProbHi(0);
-    const amrex::Real y_min = geom.ProbLo(1);
-    const amrex::Real y_max = geom.ProbHi(1);
-
-    const amrex::Real dx = geom.CellSize(0);
-    const amrex::Real dy = geom.CellSize(1);
-
-    // Loop over cell centers and initialize psi
-    for (amrex::MFIter mfi(psi); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real>& phi_array = psi.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-
-            // **********************************
-            // SET VALUES FOR EACH CELL
-            // **********************************
-
-            // Three ways to get the cell center:
-
-            // 1.) Using CellSizeArray and computing by hand         
-            //amrex::GpuArray<amrex::Real,2> dx = geom.CellSizeArray();
-            //const amrex::Real x_cell_center = (i+0.5) * dx[0];
-            //const amrex::Real y_cell_center = (j+0.5) * dx[1];
-
-            // 2.) Using built in CellCenter function
-            //const amrex::Real x_cell_center = geom.CellCenter(i, 0);
-            //const amrex::Real y_cell_center = geom.CellCenter(j, 1);
-
-            // 3.) Using CellSize and computing by hand         
-            const amrex::Real x_cell_center = (i+0.5) * dx;
-            const amrex::Real y_cell_center = (j+0.5) * dy;
-
-            const amrex::Real x_transformed = linear_map_coordinates(x_cell_center, x_min, x_max, 0.0, 2*std::numbers::pi);
-            const amrex::Real y_transformed = linear_map_coordinates(y_cell_center, y_min, y_max, 0.0, 2*std::numbers::pi);
-
-            phi_array(i,j,k) = a*std::sin(x_transformed)*std::sin(y_transformed);
-        });
-    }
-
-    psi.FillBoundary(geom.periodicity());
-
-    return;
-}
-
-void initialize_p(amrex::MultiFab & p,
-                  const amrex::Geometry geom)
-{
-
-    const amrex::Real x_min = geom.ProbLo(0);
-    const amrex::Real x_max = geom.ProbHi(0);
-    const amrex::Real y_min = geom.ProbLo(1);
-    const amrex::Real y_max = geom.ProbHi(1);
-
-    const amrex::Real dx = geom.CellSize(0);
-    const amrex::Real dy = geom.CellSize(1);
-
-    // Initialize pressure... example of how loop over nodal points
-    const amrex::Real a = 1000000; // Careful because this is double defined currently. It is used to initialize psi.
-
-    //int N = n_cell; // Change to read into input file later... choose this name to correspond with the name from the python version
-    //double el = n_cell*mesh_dx;
-
-    double el = geom.ProbLength(0);
-
-    amrex::Real pcf = (std::numbers::pi * std::numbers::pi * a * a)/(el * el);
-
-    for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.validbox();
-
-        const amrex::Array4<amrex::Real>& p_array = p.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-            amrex::Real x_node = i * dx;
-            amrex::Real y_node = j * dy;
-            
-            const amrex::Real x_transformed = linear_map_coordinates(x_node, x_min, x_max, 0.0, 2*std::numbers::pi);
-            const amrex::Real y_transformed = linear_map_coordinates(y_node, y_min, y_max, 0.0, 2*std::numbers::pi);
-
-            p_array(i,j,k) = pcf * (std::cos(2*x_transformed) + std::cos(2*y_transformed)) + 5000;
-        });
-    }
-
-    p.FillBoundary(geom.periodicity());
-}
-
 void initialize_variables(amrex::MultiFab & psi,
                           amrex::MultiFab & p,
                           amrex::MultiFab & u,
                           amrex::MultiFab & v,
-                         const amrex::Geometry geom)
+                          const amrex::Geometry geom)
 {
-    // coefficient for initialization of stream function
-    const amrex::Real a = 1000000;
 
     const amrex::Real x_min = geom.ProbLo(0);
     const amrex::Real x_max = geom.ProbHi(0);
@@ -128,7 +28,13 @@ void initialize_variables(amrex::MultiFab & psi,
     const amrex::Real dx = geom.CellSize(0);
     const amrex::Real dy = geom.CellSize(1);
 
-    // Loop over cell centers and initialize psi
+    ////////////////////////////////////////////////////////////////////////// 
+    // Initialization of stream function (psi)
+    ////////////////////////////////////////////////////////////////////////// 
+
+    // coefficient for initialization psi
+    const amrex::Real a = 1000000;
+
     for (amrex::MFIter mfi(psi); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
@@ -137,23 +43,6 @@ void initialize_variables(amrex::MultiFab & psi,
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
         {
-
-            // **********************************
-            // SET VALUES FOR EACH CELL
-            // **********************************
-
-            // Show three ways to get the cell center:
-
-            // 1.) Using CellSizeArray and computing by hand         
-            //amrex::GpuArray<amrex::Real,2> dx = geom.CellSizeArray();
-            //const amrex::Real x_cell_center = (i+0.5) * dx[0];
-            //const amrex::Real y_cell_center = (j+0.5) * dx[1];
-
-            // 2.) Using built in CellCenter function
-            //const amrex::Real x_cell_center = geom.CellCenter(i, 0);
-            //const amrex::Real y_cell_center = geom.CellCenter(j, 1);
-
-            // 3.) Using CellSize and computing by hand         
             const amrex::Real x_cell_center = (i+0.5) * dx;
             const amrex::Real y_cell_center = (j+0.5) * dy;
 
@@ -163,11 +52,15 @@ void initialize_variables(amrex::MultiFab & psi,
             phi_array(i,j,k) = a*std::sin(x_transformed)*std::sin(y_transformed);
         });
     }
+    
     psi.FillBoundary(geom.periodicity());
 
-    // Coefficient for pressure... example of how to loop over nodes
+    ////////////////////////////////////////////////////////////////////////// 
+    // Initialization of pressure (p)
+    ////////////////////////////////////////////////////////////////////////// 
+
+    // coefficient for pressure
     double el = geom.ProbLength(0);
-    amrex::Print() << "el = " << el << std::endl;
     amrex::Real pcf = (std::numbers::pi * std::numbers::pi * a * a)/(el * el);
 
     for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
@@ -187,9 +80,13 @@ void initialize_variables(amrex::MultiFab & psi,
             p_array(i,j,k) = pcf * (std::cos(2*x_transformed) + std::cos(2*y_transformed)) + 5000;
         });
     }
+
     p.FillBoundary(geom.periodicity());
 
-    // Initialize x velocity... example of how loop over y-faces
+    ////////////////////////////////////////////////////////////////////////// 
+    // Initialization of x velocity (u)
+    ////////////////////////////////////////////////////////////////////////// 
+
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
@@ -202,9 +99,13 @@ void initialize_variables(amrex::MultiFab & psi,
             u_array(i,j,k) = -(phi_old_array(i,j,k)-phi_old_array(i,j-1,k))/dy;
         });
     }
+
     u.FillBoundary(geom.periodicity());
 
-    // Initialize v velocity... example of how loop over x-faces
+    ////////////////////////////////////////////////////////////////////////// 
+    // Initialization of y velocity (v)
+    ////////////////////////////////////////////////////////////////////////// 
+
     for (amrex::MFIter mfi(v); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
@@ -217,6 +118,7 @@ void initialize_variables(amrex::MultiFab & psi,
             v_array(i,j,k) = (phi_old_array(i,j,k)-phi_old_array(i-1,j,k))/dx;
         });
     }
+
     v.FillBoundary(geom.periodicity());
 
     return;
