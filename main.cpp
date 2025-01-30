@@ -47,39 +47,28 @@ int main (int argc, char* argv[])
                 n_time_steps, dt, plot_interval);
 
     // ***********************************************************************
-    // Define simulation setup and geometry
+    // Define arrays
     // ***********************************************************************
 
     amrex::MultiFab psi;
     define_cell_centered_MultiFab(nx, ny, max_chunk_size, psi);
 
-    amrex::BoxArray cell_box_array = psi.boxArray();
-    //amrex::DistributionMapping distribution_mapping = psi.DistributionMap();
+    amrex::MultiFab v;
+    define_x_face_MultiFab(psi, v);
 
-    amrex::BoxArray x_face_box_array = amrex::convert(cell_box_array, {1,0});
-    //amrex::MultiFab v(x_face_box_array, distribution_mapping, Ncomp, Nghost); 
-    amrex::MultiFab v(x_face_box_array, psi.DistributionMap(), psi.nComp(), psi.nGrow());
+    amrex::MultiFab u;
+    define_y_face_MultiFab(psi, u);
 
-    amrex::BoxArray y_face_box_array = amrex::convert(cell_box_array, {0,1});
-    //amrex::MultiFab u(y_face_box_array, distribution_mapping, Ncomp, Nghost);  
-    amrex::MultiFab u(y_face_box_array, psi.DistributionMap(), psi.nComp(), psi.nGrow());
-
-    amrex::BoxArray surrounding_nodes_box_array = cell_box_array;
-    surrounding_nodes_box_array.surroundingNodes();
-    //amrex::MultiFab p(surrounding_nodes_box_array, distribution_mapping, Ncomp, Nghost);
-    amrex::MultiFab p(surrounding_nodes_box_array, psi.DistributionMap(), psi.nComp(), psi.nGrow());
-
-    //amrex::Print() << "distribution_mapping " << distribution_mapping << std::endl;
-    //amrex::Print() << "x_face_box_array " << x_face_box_array << std::endl;
-    //amrex::Print() << "y_face_box_array " << y_face_box_array << std::endl;
-    //amrex::Print() << "surrounding_nodes_box_array " << surrounding_nodes_box_array << std::endl;
-
-    amrex::Geometry geom;
-    initialize_geometry(nx, ny, dx, dy, geom);
+    amrex::MultiFab p;
+    define_nodal_MultiFab(psi, p);
     
     // **********************************
     // Initialize Data
     // **********************************
+
+    // AMReX object to hold domain meta data
+    amrex::Geometry geom;
+    initialize_geometry(nx, ny, dx, dy, geom);
 
     initialize_variables(geom, psi, p, u, v);
 
@@ -137,8 +126,8 @@ int main (int argc, char* argv[])
     amrex::MultiFab::Copy(p_old, p, 0, 0, p.nComp(), p.nGrow());
 
     // Constants used in time stepping loop
-    double fsdx = 4.0/dx;
-    double fsdy = 4.0/dy;
+    const double fsdx = 4.0/dx;
+    const double fsdy = 4.0/dy;
     double tdt = dt;
 
     for (int time_step = 0; time_step < n_time_steps; ++time_step)

@@ -9,11 +9,9 @@ void parse_input(int & nx, int & ny,
                  int & n_time_steps, amrex::Real & dt,
                  int & plot_interval);
 
-
 void initialize_geometry(const int nx, const int ny,
                          const amrex::Real dx, const amrex::Real dy,
                          amrex::Geometry & geom);
-
 
 // Linear mapping of a value (x) from one interval [x_min, x_max] to another [xi_min, xi_max].
 // Precondition: x_min <= x <= x_max
@@ -24,6 +22,15 @@ amrex::Real linear_map_coordinates(const amrex::Real x,
 void define_cell_centered_MultiFab(const int nx, const int ny,
                                    const int max_chunk_size,
                                    amrex::MultiFab & cell_centered_MultiFab);
+
+void define_x_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                            amrex::MultiFab & x_face_MultiFab);
+
+void define_y_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                            amrex::MultiFab & y_face_MultiFab);
+
+void define_nodal_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                           amrex::MultiFab & nodal_MultiFab);
 
 void initialize_variables(const amrex::Geometry & geom,
                           amrex::MultiFab & psi,

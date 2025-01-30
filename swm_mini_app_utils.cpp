@@ -36,6 +36,7 @@ void parse_input(int & nx, int & ny,
     plot_interval = -1;
     pp.query("plot_interval",plot_interval);
 
+    return;
 }
 
 void define_cell_centered_MultiFab(const int nx, const int ny,
@@ -66,6 +67,52 @@ void define_cell_centered_MultiFab(const int nx, const int ny,
     int Nghost = 1;
 
     cell_centered_MultiFab.define(cell_box_array, distribution_mapping, Ncomp, Nghost);
+
+    return;
+}
+
+void define_x_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                            amrex::MultiFab & x_face_MultiFab)
+{
+    AMREX_ASSERT(cell_centered_MultiFab.is_cell_centered());
+
+    const amrex::BoxArray cell_box_array = cell_centered_MultiFab.boxArray();
+
+    const amrex::BoxArray x_face_box_array = amrex::convert(cell_box_array, {1,0});
+
+    x_face_MultiFab.define(x_face_box_array, cell_centered_MultiFab.DistributionMap(), cell_centered_MultiFab.nComp(), cell_centered_MultiFab.nGrow());
+
+    return;
+}
+
+void define_y_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                            amrex::MultiFab & y_face_MultiFab)
+{
+    AMREX_ASSERT(cell_centered_MultiFab.is_cell_centered());
+
+    const amrex::BoxArray cell_box_array = cell_centered_MultiFab.boxArray();
+
+    const amrex::BoxArray y_face_box_array = amrex::convert(cell_box_array, {0,1});
+
+    y_face_MultiFab.define(y_face_box_array, cell_centered_MultiFab.DistributionMap(), cell_centered_MultiFab.nComp(), cell_centered_MultiFab.nGrow());
+
+    return;
+}
+
+void define_nodal_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                            amrex::MultiFab & nodal_MultiFab)
+{
+    AMREX_ASSERT(cell_centered_MultiFab.is_cell_centered());
+
+    const amrex::BoxArray cell_box_array = cell_centered_MultiFab.boxArray();
+
+
+    amrex::BoxArray surrounding_nodes_box_array = cell_box_array;
+    surrounding_nodes_box_array.surroundingNodes();
+
+    nodal_MultiFab.define(surrounding_nodes_box_array, cell_centered_MultiFab.DistributionMap(), cell_centered_MultiFab.nComp(), cell_centered_MultiFab.nGrow());
+
+    return;
 }
 
 void initialize_geometry(const int nx, const int ny,
