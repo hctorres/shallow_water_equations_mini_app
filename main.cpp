@@ -51,31 +51,7 @@ int main (int argc, char* argv[])
     // ***********************************************************************
 
     amrex::MultiFab psi;
-    {
-        // lower and upper indices of domain
-        const amrex::IntVect domain_low_index(0,0);
-        const amrex::IntVect domain_high_index(nx-1, ny-1);
-      
-        // create box of indicies for cells
-        const amrex::Box cell_centered_box(domain_low_index, domain_high_index);
-
-        // Initialize the boxarray "cell_box_array" from the single box "domain"
-        amrex::BoxArray cell_box_array;
-        cell_box_array.define(cell_centered_box);
-
-        // Break up boxarray "cell_box_array" into chunks no larger than "max_chunk_size" along a direction
-        cell_box_array.maxSize(max_chunk_size);
-
-        // Ncomp = number of components for each array
-        int Ncomp = 1;
-
-        // Nghost = number of ghost cells for each array
-        int Nghost = 1;
-
-        amrex::DistributionMapping distribution_mapping(cell_box_array);
-
-        psi.define(cell_box_array, distribution_mapping, Ncomp, Nghost);
-    }
+    define_cell_centered_MultiFab(nx, ny, max_chunk_size, psi);
 
     amrex::BoxArray cell_box_array = psi.boxArray();
     //amrex::DistributionMapping distribution_mapping = psi.DistributionMap();

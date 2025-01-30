@@ -38,6 +38,36 @@ void parse_input(int & nx, int & ny,
 
 }
 
+void define_cell_centered_MultiFab(const int nx, const int ny,
+                                   const int max_chunk_size,
+                                   amrex::MultiFab & cell_centered_MultiFab)
+{
+    // lower and upper indices of domain
+    const amrex::IntVect domain_low_index(0,0);
+    const amrex::IntVect domain_high_index(nx-1, ny-1);
+    
+    // create box of indicies for cells
+    const amrex::Box cell_centered_box(domain_low_index, domain_high_index);
+
+    // initialize the boxarray "cell_box_array" from the single box "cell_centered_box"
+    amrex::BoxArray cell_box_array(cell_centered_box);
+    //cell_box_array.define(cell_centered_box);
+
+    // break up boxarray "cell_box_array" into chunks no larger than "max_chunk_size" along a direction
+    cell_box_array.maxSize(max_chunk_size);
+
+    // assigns processor to each box in the box array
+    amrex::DistributionMapping distribution_mapping(cell_box_array);
+
+    // number of components for each array
+    int Ncomp = 1;
+
+    // number of ghost cells for each array
+    int Nghost = 1;
+
+    cell_centered_MultiFab.define(cell_box_array, distribution_mapping, Ncomp, Nghost);
+}
+
 void initialize_geometry(const int nx, const int ny,
                          const amrex::Real dx, const amrex::Real dy,
                          amrex::Geometry & geom)

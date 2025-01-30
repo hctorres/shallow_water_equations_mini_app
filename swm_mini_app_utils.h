@@ -21,6 +21,10 @@ amrex::Real linear_map_coordinates(const amrex::Real x,
                                    const amrex::Real x_min,  const amrex::Real x_max,
                                    const amrex::Real xi_min, const amrex::Real xi_max);
 
+void define_cell_centered_MultiFab(const int nx, const int ny,
+                                   const int max_chunk_size,
+                                   amrex::MultiFab & cell_centered_MultiFab);
+
 void initialize_variables(const amrex::Geometry & geom,
                           amrex::MultiFab & psi,
                           amrex::MultiFab & p,
