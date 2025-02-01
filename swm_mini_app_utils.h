@@ -2,6 +2,7 @@
 #define SWM_MINI_APP_UTILS_H_
 
 #include <AMReX.H>
+#include <AMReX_MultiFab.H>
 
 void parse_input(int & nx, int & ny,
                  amrex::Real & dx, amrex::Real & dy,
@@ -46,5 +47,9 @@ void write_output(const amrex::MultiFab & psi,
                   const amrex::Real time,
                   const int time_step,
                   amrex::MultiFab & output_values);
+
+amrex::MultiFab createMultiFab(const amrex::MultiFab & mf);
+
+void Copy(const amrex::MultiFab & src, amrex::MultiFab & dest);
 
 #endif // SWM_MINI_APP_UTILS_H_

@@ -11,7 +11,6 @@
 
 #include "swm_mini_app_utils.h"
 
-
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -66,7 +65,7 @@ int main (int argc, char* argv[])
     // Initialize Data
     // **********************************
 
-    // AMReX object to hold domain meta data
+    // AMReX object to hold domain meta data... Like the physical size of the domain and if it is periodic in each direction
     amrex::Geometry geom;
     initialize_geometry(nx, ny, dx, dy, geom);
 
@@ -101,29 +100,38 @@ int main (int argc, char* argv[])
     // Intermediate Values used in time stepping loop
     // **********************************************
 
-    // cu on the y faces (same locations as u)
-    amrex::MultiFab cu(u.boxArray(), u.DistributionMap(), 1, u.nGrow());
+    // The product of pressure and x-velocity. 
+    // Called cu for consistency with the other version of the mini-app
+    // Stored on the y faces (same locations as u)
+    amrex::MultiFab cu = createMultiFab(u);
 
-    // cv on the x faces (same locations as v)
-    amrex::MultiFab cv(v.boxArray(), v.DistributionMap(), 1, v.nGrow());
+    // The product of pressure and y-velocity. 
+    // Called cv for consistency with the other version of the mini-app
+    // Stored on the x faces (same locations as v)
+    amrex::MultiFab cv = createMultiFab(v);
 
-    // z on the cell centers (same locations as psi)
-    amrex::MultiFab z(psi.boxArray(), psi.DistributionMap(), 1, psi.nGrow());
+    // The potential vorticity. 
+    // Called z for consistency with the other version of the mini-app
+    // Stored on the cell centers (same locations as psi)
+    amrex::MultiFab z = createMultiFab(psi);
 
-    // h on the nodal points (same locations as p)
-    amrex::MultiFab h(p.boxArray(), p.DistributionMap(), 1, p.nGrow());
+    // The potential vorticity. 
+    // Called z for consistency with the other version of the mini-app
+    // Stored on the nodal points (same locations as p)
+    amrex::MultiFab h = createMultiFab(p);
 
-    amrex::MultiFab u_old(u.boxArray(), u.DistributionMap(), u.nComp(), u.nGrow());
-    amrex::MultiFab v_old(v.boxArray(), v.DistributionMap(), v.nComp(), v.nGrow());
-    amrex::MultiFab p_old(p.boxArray(), p.DistributionMap(), p.nComp(), p.nGrow());
+    // Arrays to hold the primary variables (u,v,p) that are updated when time stepping
+    amrex::MultiFab u_old = createMultiFab(u);
+    amrex::MultiFab v_old = createMultiFab(v);
+    amrex::MultiFab p_old = createMultiFab(p);
+    amrex::MultiFab u_new = createMultiFab(u);
+    amrex::MultiFab v_new = createMultiFab(v);
+    amrex::MultiFab p_new = createMultiFab(p);
 
-    amrex::MultiFab u_new(u.boxArray(), u.DistributionMap(), u.nComp(), u.nGrow());
-    amrex::MultiFab v_new(v.boxArray(), v.DistributionMap(), v.nComp(), v.nGrow());
-    amrex::MultiFab p_new(p.boxArray(), p.DistributionMap(), p.nComp(), p.nGrow());
-
-    amrex::MultiFab::Copy(u_old, u, 0, 0, u.nComp(), u.nGrow());
-    amrex::MultiFab::Copy(v_old, v, 0, 0, v.nComp(), v.nGrow());
-    amrex::MultiFab::Copy(p_old, p, 0, 0, p.nComp(), p.nGrow());
+    // For the first time step the {u,v,p}_old values are initialized to match {u,v,p}.
+    Copy(u, u_old);
+    Copy(v, v_old);
+    Copy(p, p_old);
 
     // Constants used in time stepping loop
     const double fsdx = 4.0/dx;
@@ -132,7 +140,7 @@ int main (int argc, char* argv[])
 
     for (int time_step = 0; time_step < n_time_steps; ++time_step)
     {
-        // fill ghost cells and periodic ghost cells 
+        // fill ghost cells owned by other processor and periodic ghost cells 
         u.FillBoundary(geom.periodicity());
         v.FillBoundary(geom.periodicity());
         p.FillBoundary(geom.periodicity());
@@ -236,20 +244,20 @@ int main (int argc, char* argv[])
                 });
             }
 
-            amrex::MultiFab::Copy(u, u_new, 0, 0, u.nComp(), u.nGrow());
-            amrex::MultiFab::Copy(v, v_new, 0, 0, v.nComp(), v.nGrow());
-            amrex::MultiFab::Copy(p, p_new, 0, 0, p.nComp(), p.nGrow());
+            Copy(u_new, u);
+            Copy(v_new, v);
+            Copy(p_new, p);
 
         } else {
-            tdt = tdt+tdt;
+            tdt = tdt + tdt;
 
-            amrex::MultiFab::Copy(u_old, u, 0, 0, u.nComp(), u.nGrow());
-            amrex::MultiFab::Copy(v_old, v, 0, 0, v.nComp(), v.nGrow());
-            amrex::MultiFab::Copy(p_old, p, 0, 0, p.nComp(), p.nGrow());
+            Copy(u, u_old);
+            Copy(v, v_old);
+            Copy(p, p_old);
 
-            amrex::MultiFab::Copy(u, u_new, 0, 0, u.nComp(), u.nGrow());
-            amrex::MultiFab::Copy(v, v_new, 0, 0, v.nComp(), v.nGrow());
-            amrex::MultiFab::Copy(p, p_new, 0, 0, p.nComp(), p.nGrow());
+            Copy(u_new, u);
+            Copy(v_new, v);
+            Copy(p_new, p);
 
         }
 

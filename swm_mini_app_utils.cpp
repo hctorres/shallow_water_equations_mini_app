@@ -4,6 +4,7 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_MultiFab.H>
 
 #include "swm_mini_app_utils.h"
 
@@ -301,4 +302,14 @@ void write_output(const amrex::MultiFab & psi,
     amrex::WriteSingleLevelPlotfile(pltfile, output_values, {"psi", "p", "u", "v"}, geom, time, time_step);
 
     return;
+}
+
+amrex::MultiFab createMultiFab(const amrex::MultiFab & mf)
+{
+    return amrex::MultiFab(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
+}
+
+void Copy(const amrex::MultiFab & src, amrex::MultiFab & dest)
+{
+    amrex::MultiFab::Copy(dest, src, 0, 0, src.nComp(), src.nGrow());
 }
