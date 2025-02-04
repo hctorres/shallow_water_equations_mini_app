@@ -312,6 +312,7 @@ amrex::MultiFab CreateMultiFab(const amrex::MultiFab & mf)
 void Copy(const amrex::MultiFab & src, amrex::MultiFab & dest)
 {
     amrex::MultiFab::Copy(dest, src, 0, 0, src.nComp(), src.nGrow());
+    return;
 }
 
 void UpdateIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amrex::Geometry& geom,
@@ -390,6 +391,8 @@ void UpdateNewVariables(const double dx, const double dy, const double tdt, cons
     u_new.FillBoundary(geom.periodicity());
     v_new.FillBoundary(geom.periodicity());
     p_new.FillBoundary(geom.periodicity());
+
+    return;
 }
 
 void UpdateOldVariables(const double alpha, const int time_step, const amrex::Geometry& geom,
@@ -436,6 +439,8 @@ void UpdateOldVariables(const double alpha, const int time_step, const amrex::Ge
     u_old.FillBoundary(geom.periodicity());
     v_old.FillBoundary(geom.periodicity());
     p_old.FillBoundary(geom.periodicity());
+
+    return;
 }
 
 void UpdateVariables(const amrex::Geometry& geom, 
@@ -449,4 +454,6 @@ void UpdateVariables(const amrex::Geometry& geom,
     u.FillBoundary(geom.periodicity());
     v.FillBoundary(geom.periodicity());
     p.FillBoundary(geom.periodicity());
+
+    return;
 }
