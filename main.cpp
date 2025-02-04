@@ -140,10 +140,6 @@ int main (int argc, char* argv[])
 
     for (int time_step = 0; time_step < n_time_steps; ++time_step)
     {
-        // fill ghost cells owned by other processor and periodic ghost cells 
-        u.FillBoundary(geom.periodicity());
-        v.FillBoundary(geom.periodicity());
-        p.FillBoundary(geom.periodicity());
 
         for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
         {
@@ -267,8 +263,14 @@ int main (int argc, char* argv[])
             write_output(psi, p, u, v, geom, time, time_step, output_values);
         }
 
-        //amrex::Print() << "Done with time step " << time_step << std::endl;
     }
+    // fill ghost cells owned by other processor and periodic ghost cells 
+    u.FillBoundary(geom.periodicity());
+    v.FillBoundary(geom.periodicity());
+    p.FillBoundary(geom.periodicity());
+    u_old.FillBoundary(geom.periodicity());
+    v_old.FillBoundary(geom.periodicity());
+    p_old.FillBoundary(geom.periodicity());
 
     amrex::Print() << "Final: " << std::endl;
     amrex::Print() << "p max: " << p.max(0) << std::endl;
