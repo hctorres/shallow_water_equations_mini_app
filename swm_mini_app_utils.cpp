@@ -9,11 +9,11 @@
 #include "swm_mini_app_utils.h"
 
 
-void parse_input(int & nx, int & ny,
-                 amrex::Real & dx, amrex::Real & dy,
-                 int & max_chunk_size,
-                 int & n_time_steps, amrex::Real & dt,
-                 int & plot_interval)
+void ParseInput(int & nx, int & ny,
+                amrex::Real & dx, amrex::Real & dy,
+                int & max_chunk_size,
+                int & n_time_steps, amrex::Real & dt,
+                int & plot_interval)
 {
     // ParmParse is way of reading inputs from the inputs file
     // pp.get means we require the inputs file to have it
@@ -40,9 +40,9 @@ void parse_input(int & nx, int & ny,
     return;
 }
 
-void define_cell_centered_MultiFab(const int nx, const int ny,
-                                   const int max_chunk_size,
-                                   amrex::MultiFab & cell_centered_MultiFab)
+void DefineCellCenteredMultiFab(const int nx, const int ny,
+                                const int max_chunk_size,
+                                amrex::MultiFab & cell_centered_MultiFab)
 {
     // lower and upper indices of domain
     const amrex::IntVect domain_low_index(0,0);
@@ -72,8 +72,8 @@ void define_cell_centered_MultiFab(const int nx, const int ny,
     return;
 }
 
-void define_x_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
-                            amrex::MultiFab & x_face_MultiFab)
+void DefineXFaceMultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                         amrex::MultiFab & x_face_MultiFab)
 {
     AMREX_ASSERT(cell_centered_MultiFab.is_cell_centered());
 
@@ -86,8 +86,8 @@ void define_x_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
     return;
 }
 
-void define_y_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
-                            amrex::MultiFab & y_face_MultiFab)
+void DefineYFaceMultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                         amrex::MultiFab & y_face_MultiFab)
 {
     AMREX_ASSERT(cell_centered_MultiFab.is_cell_centered());
 
@@ -100,8 +100,8 @@ void define_y_face_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
     return;
 }
 
-void define_nodal_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
-                            amrex::MultiFab & nodal_MultiFab)
+void DefineNodalMultiFab(const amrex::MultiFab & cell_centered_MultiFab,
+                         amrex::MultiFab & nodal_MultiFab)
 {
     AMREX_ASSERT(cell_centered_MultiFab.is_cell_centered());
 
@@ -116,9 +116,9 @@ void define_nodal_MultiFab(const amrex::MultiFab & cell_centered_MultiFab,
     return;
 }
 
-void initialize_geometry(const int nx, const int ny,
-                         const amrex::Real dx, const amrex::Real dy,
-                         amrex::Geometry & geom)
+void InitializeGeometry(const int nx, const int ny,
+                        const amrex::Real dx, const amrex::Real dy,
+                        amrex::Geometry & geom)
 {
   // lower and upper indices of domain
   const amrex::IntVect domain_low_index(0,0);
@@ -146,18 +146,18 @@ void initialize_geometry(const int nx, const int ny,
   return;
 }
 
-amrex::Real linear_map_coordinates(const amrex::Real x, 
-                                   const amrex::Real x_min, const amrex::Real x_max,
-                                   const amrex::Real xi_min, const amrex::Real xi_max)
+amrex::Real LinearMapCoordinates(const amrex::Real x, 
+                                 const amrex::Real x_min, const amrex::Real x_max,
+                                 const amrex::Real xi_min, const amrex::Real xi_max)
 {
     return x_min + ((xi_max-xi_min)/(x_max-x_min))*x;
 }
 
-void initialize_variables(const amrex::Geometry & geom,
-                          amrex::MultiFab & psi,
-                          amrex::MultiFab & p,
-                          amrex::MultiFab & u,
-                          amrex::MultiFab & v)
+void InitializeVariables(const amrex::Geometry & geom,
+                         amrex::MultiFab & psi,
+                         amrex::MultiFab & p,
+                         amrex::MultiFab & u,
+                         amrex::MultiFab & v)
 {
 
     const amrex::Real x_min = geom.ProbLo(0);
@@ -186,8 +186,8 @@ void initialize_variables(const amrex::Geometry & geom,
             const amrex::Real x_cell_center = (i+0.5) * dx;
             const amrex::Real y_cell_center = (j+0.5) * dy;
 
-            const amrex::Real x_transformed = linear_map_coordinates(x_cell_center, x_min, x_max, 0.0, 2*std::numbers::pi);
-            const amrex::Real y_transformed = linear_map_coordinates(y_cell_center, y_min, y_max, 0.0, 2*std::numbers::pi);
+            const amrex::Real x_transformed = LinearMapCoordinates(x_cell_center, x_min, x_max, 0.0, 2*std::numbers::pi);
+            const amrex::Real y_transformed = LinearMapCoordinates(y_cell_center, y_min, y_max, 0.0, 2*std::numbers::pi);
 
             phi_array(i,j,k) = a*std::sin(x_transformed)*std::sin(y_transformed);
         });
@@ -214,8 +214,8 @@ void initialize_variables(const amrex::Geometry & geom,
             amrex::Real x_node = i * dx;
             amrex::Real y_node = j * dy;
             
-            const amrex::Real x_transformed = linear_map_coordinates(x_node, x_min, x_max, 0.0, 2*std::numbers::pi);
-            const amrex::Real y_transformed = linear_map_coordinates(y_node, y_min, y_max, 0.0, 2*std::numbers::pi);
+            const amrex::Real x_transformed = LinearMapCoordinates(x_node, x_min, x_max, 0.0, 2*std::numbers::pi);
+            const amrex::Real y_transformed = LinearMapCoordinates(y_node, y_min, y_max, 0.0, 2*std::numbers::pi);
 
             p_array(i,j,k) = pcf * (std::cos(2*x_transformed) + std::cos(2*y_transformed)) + 5000;
         });
@@ -265,14 +265,14 @@ void initialize_variables(const amrex::Geometry & geom,
 }
 
 
-void write_output(const amrex::MultiFab & psi,
-                  const amrex::MultiFab & p,
-                  const amrex::MultiFab & u,
-                  const amrex::MultiFab & v,
-                  const amrex::Geometry & geom,
-                  const amrex::Real time,
-                  const int time_step,
-                  amrex::MultiFab & output_values)
+void WriteOutput(const amrex::MultiFab & psi,
+                 const amrex::MultiFab & p,
+                 const amrex::MultiFab & u,
+                 const amrex::MultiFab & v,
+                 const amrex::Geometry & geom,
+                 const amrex::Real time,
+                 const int time_step,
+                 amrex::MultiFab & output_values)
 {
 
     // Interpolate all values to cell centers
@@ -304,7 +304,7 @@ void write_output(const amrex::MultiFab & psi,
     return;
 }
 
-amrex::MultiFab createMultiFab(const amrex::MultiFab & mf)
+amrex::MultiFab CreateMultiFab(const amrex::MultiFab & mf)
 {
     return amrex::MultiFab(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
 }
@@ -314,7 +314,7 @@ void Copy(const amrex::MultiFab & src, amrex::MultiFab & dest)
     amrex::MultiFab::Copy(dest, src, 0, 0, src.nComp(), src.nGrow());
 }
 
-void updateIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amrex::Geometry& geom,
+void UpdateIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amrex::Geometry& geom,
                                  const amrex::MultiFab& p, const amrex::MultiFab& u, const amrex::MultiFab& v,
                                  amrex::MultiFab& cu, amrex::MultiFab& cv, amrex::MultiFab& h, amrex::MultiFab& z)
 {
@@ -350,7 +350,7 @@ void updateIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amrex
     return;
 }
 
-void updateNewVariables(const double dx, const double dy, const double tdt, const amrex::Geometry& geom,
+void UpdateNewVariables(const double dx, const double dy, const double tdt, const amrex::Geometry& geom,
                         const amrex::MultiFab& p_old, const amrex::MultiFab& u_old, const amrex::MultiFab& v_old,
                         const amrex::MultiFab& cu, const amrex::MultiFab& cv, const amrex::MultiFab& h, const amrex::MultiFab& z,
                         amrex::MultiFab& p_new, amrex::MultiFab& u_new, amrex::MultiFab& v_new)
@@ -392,7 +392,7 @@ void updateNewVariables(const double dx, const double dy, const double tdt, cons
     p_new.FillBoundary(geom.periodicity());
 }
 
-void updateOldVariables(const double alpha, const int time_step, const amrex::Geometry& geom,
+void UpdateOldVariables(const double alpha, const int time_step, const amrex::Geometry& geom,
                         const amrex::MultiFab& p, const amrex::MultiFab& u, const amrex::MultiFab& v, 
                         const amrex::MultiFab& p_new, const amrex::MultiFab& u_new, const amrex::MultiFab& v_new, 
                         amrex::MultiFab& p_old, amrex::MultiFab& u_old, amrex::MultiFab& v_old)
@@ -438,7 +438,7 @@ void updateOldVariables(const double alpha, const int time_step, const amrex::Ge
     p_old.FillBoundary(geom.periodicity());
 }
 
-void updateVariables(const amrex::Geometry& geom, 
+void UpdateVariables(const amrex::Geometry& geom, 
                      const amrex::MultiFab& u_new, const amrex::MultiFab& v_new, const amrex::MultiFab& p_new,
                      amrex::MultiFab& u, amrex::MultiFab& v, amrex::MultiFab& p)
 {

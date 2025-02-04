@@ -42,24 +42,24 @@ int main (int argc, char* argv[])
     int plot_interval;
 
     // Set parameter values from inputs file
-    parse_input(nx, ny, dx, dy, max_chunk_size,
-                n_time_steps, dt, plot_interval);
+    ParseInput(nx, ny, dx, dy, max_chunk_size,
+               n_time_steps, dt, plot_interval);
 
     // ***********************************************************************
     // Define arrays
     // ***********************************************************************
 
     amrex::MultiFab psi;
-    define_cell_centered_MultiFab(nx, ny, max_chunk_size, psi);
+    DefineCellCenteredMultiFab(nx, ny, max_chunk_size, psi);
 
     amrex::MultiFab v;
-    define_x_face_MultiFab(psi, v);
+    DefineXFaceMultiFab(psi, v);
 
     amrex::MultiFab u;
-    define_y_face_MultiFab(psi, u);
+    DefineYFaceMultiFab(psi, u);
 
     amrex::MultiFab p;
-    define_nodal_MultiFab(psi, p);
+    DefineNodalMultiFab(psi, p);
     
     // **********************************
     // Initialize Data
@@ -67,9 +67,9 @@ int main (int argc, char* argv[])
 
     // AMReX object to hold domain meta data... Like the physical size of the domain and if it is periodic in each direction
     amrex::Geometry geom;
-    initialize_geometry(nx, ny, dx, dy, geom);
+    InitializeGeometry(nx, ny, dx, dy, geom);
 
-    initialize_variables(geom, psi, p, u, v);
+    InitializeVariables(geom, psi, p, u, v);
 
     amrex::Print() << "Initial: " << std::endl;
     amrex::Print() << "psi max: " << psi.max(0) << std::endl;
@@ -93,7 +93,7 @@ int main (int argc, char* argv[])
     if (plot_interval > 0)
     {
         int time_step = 0;
-        write_output(psi, p, u, v, geom, time, time_step, output_values);
+        WriteOutput(psi, p, u, v, geom, time, time_step, output_values);
     }
 
     // **********************************************
@@ -103,30 +103,30 @@ int main (int argc, char* argv[])
     // The product of pressure and x-velocity. 
     // Called cu for consistency with the other version of the mini-app
     // Stored on the y faces (same locations as u)
-    amrex::MultiFab cu = createMultiFab(u);
+    amrex::MultiFab cu = CreateMultiFab(u);
 
     // The product of pressure and y-velocity. 
     // Called cv for consistency with the other version of the mini-app
     // Stored on the x faces (same locations as v)
-    amrex::MultiFab cv = createMultiFab(v);
+    amrex::MultiFab cv = CreateMultiFab(v);
 
     // The potential vorticity. 
     // Called z for consistency with the other version of the mini-app
     // Stored on the cell centers (same locations as psi)
-    amrex::MultiFab z = createMultiFab(psi);
+    amrex::MultiFab z = CreateMultiFab(psi);
 
     // The term (P + 1/2(V dot V)). The gradient of this term appears on the right hand side of the momentum equations.
     // Called h for consistency with the other version of the mini-app
     // Stored on the nodal points (same locations as p)
-    amrex::MultiFab h = createMultiFab(p);
+    amrex::MultiFab h = CreateMultiFab(p);
 
     // Arrays to hold the primary variables (u,v,p) that are updated when time stepping
-    amrex::MultiFab u_old = createMultiFab(u);
-    amrex::MultiFab v_old = createMultiFab(v);
-    amrex::MultiFab p_old = createMultiFab(p);
-    amrex::MultiFab u_new = createMultiFab(u);
-    amrex::MultiFab v_new = createMultiFab(v);
-    amrex::MultiFab p_new = createMultiFab(p);
+    amrex::MultiFab u_old = CreateMultiFab(u);
+    amrex::MultiFab v_old = CreateMultiFab(v);
+    amrex::MultiFab p_old = CreateMultiFab(p);
+    amrex::MultiFab u_new = CreateMultiFab(u);
+    amrex::MultiFab v_new = CreateMultiFab(v);
+    amrex::MultiFab p_new = CreateMultiFab(p);
 
     // For the first time step the {u,v,p}_old values are initialized to match {u,v,p}.
     Copy(u, u_old);
@@ -142,25 +142,25 @@ int main (int argc, char* argv[])
     for (int time_step = 0; time_step < n_time_steps; ++time_step)
     {
         // Sets: cu, cv, h, z
-        updateIntermediateVariables(fsdx, fsdy, geom,
+        UpdateIntermediateVariables(fsdx, fsdy, geom,
                                      p, u, v,
                                      cu, cv, h, z);
 
 
         // Sets: p_new, u_new, v_new
-        updateNewVariables(dx, dy, tdt, geom,
+        UpdateNewVariables(dx, dy, tdt, geom,
                            p_old, u_old, v_old, cu, cv, h, z,
                            p_new, u_new, v_new);
 
 
         // Sets: p_old, u_old, v_old
-        updateOldVariables(alpha, time_step, geom,
+        UpdateOldVariables(alpha, time_step, geom,
                            p, u, v,
                            p_new, u_new, v_new,
                            p_old, u_old, v_old);
 
         // Sets: p, u, v
-        updateVariables(geom, u_new, v_new, p_new, u, v, p);
+        UpdateVariables(geom, u_new, v_new, p_new, u, v, p);
 
         if (time_step == 0) {
             tdt = tdt + tdt;
@@ -171,7 +171,7 @@ int main (int argc, char* argv[])
         // Write a plotfile of the current data (plot_interval was defined in the inputs file)
         if (plot_interval > 0 && time_step%plot_interval == 0)
         {
-            write_output(psi, p, u, v, geom, time, time_step, output_values);
+            WriteOutput(psi, p, u, v, geom, time, time_step, output_values);
         }
 
     }
