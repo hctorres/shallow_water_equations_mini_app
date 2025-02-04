@@ -145,17 +145,14 @@ int main (int argc, char* argv[])
                                      p, u, v,
                                      cu, cv, h, z);
 
-        // defined here because tdt changes after first time step
-        const double tdtsdx = tdt / dx;
-        const double tdtsdy = tdt / dy;
-        const double tdts8  = tdt / 8.0;
 
-        updateNewVariables(tdtsdx, tdtsdy, tdts8, geom,
+        updateNewVariables(dx, dy, tdt, geom,
                            p_old, u_old, v_old, cu, cv, h, z,
                            p_new, u_new, v_new);
 
         time = time + dt;
 
+        // Update the old values for the next time step
         if (time_step>0) {
 
             double alpha = 0.001;
@@ -189,22 +186,25 @@ int main (int argc, char* argv[])
                 });
             }
 
-            Copy(u_new, u);
-            Copy(v_new, v);
-            Copy(p_new, p);
-
         } else {
             tdt = tdt + tdt;
 
             Copy(u, u_old);
             Copy(v, v_old);
             Copy(p, p_old);
-
-            Copy(u_new, u);
-            Copy(v_new, v);
-            Copy(p_new, p);
-
         }
+        // Im not sure if I need to fill the ghost cells again here for sure. The copy might have already taken care of this. Explicitly doing it just in case.
+        u_old.FillBoundary(geom.periodicity());
+        v_old.FillBoundary(geom.periodicity());
+        p_old.FillBoundary(geom.periodicity());
+
+        // Update values for the next time step
+        Copy(u_new, u);
+        Copy(v_new, v);
+        Copy(p_new, p);
+        u.FillBoundary(geom.periodicity());
+        v.FillBoundary(geom.periodicity());
+        p.FillBoundary(geom.periodicity());
 
         // Write a plotfile of the current data (plot_interval was defined in the inputs file)
         if (plot_interval > 0 && time_step%plot_interval == 0)
@@ -213,13 +213,6 @@ int main (int argc, char* argv[])
         }
 
     }
-    // fill ghost cells owned by other processor and periodic ghost cells 
-    u.FillBoundary(geom.periodicity());
-    v.FillBoundary(geom.periodicity());
-    p.FillBoundary(geom.periodicity());
-    u_old.FillBoundary(geom.periodicity());
-    v_old.FillBoundary(geom.periodicity());
-    p_old.FillBoundary(geom.periodicity());
 
     amrex::Print() << "Final: " << std::endl;
     amrex::Print() << "p max: " << p.max(0) << std::endl;

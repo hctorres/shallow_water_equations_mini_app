@@ -56,7 +56,7 @@ void computeIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amre
                                  const amrex::MultiFab& p, const amrex::MultiFab& u, const amrex::MultiFab& v,
                                  amrex::MultiFab& cu, amrex::MultiFab& cv, amrex::MultiFab& h, amrex::MultiFab& z);
 
-void updateNewVariables(const double tdtsdx, const double tdtsdy, const double tdts8, const amrex::Geometry& geom,
+void updateNewVariables(const double dx, const double dy, const double tdt, const amrex::Geometry& geom,
                         const amrex::MultiFab& p_old, const amrex::MultiFab& u_old, const amrex::MultiFab& v_old,
                         const amrex::MultiFab& cu, const amrex::MultiFab& cv, const amrex::MultiFab& h, const amrex::MultiFab& z,
                         amrex::MultiFab& p_new, amrex::MultiFab& u_new, amrex::MultiFab& v_new);

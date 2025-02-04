@@ -350,11 +350,17 @@ void computeIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amre
     return;
 }
 
-void updateNewVariables(const double tdtsdx, const double tdtsdy, const double tdts8, const amrex::Geometry& geom,
+void updateNewVariables(const double dx, const double dy, const double tdt, const amrex::Geometry& geom,
                         const amrex::MultiFab& p_old, const amrex::MultiFab& u_old, const amrex::MultiFab& v_old,
                         const amrex::MultiFab& cu, const amrex::MultiFab& cv, const amrex::MultiFab& h, const amrex::MultiFab& z,
                         amrex::MultiFab& p_new, amrex::MultiFab& u_new, amrex::MultiFab& v_new)
 {
+
+    // defined here because tdt changes after first time step
+    const double tdtsdx = tdt / dx;
+    const double tdtsdy = tdt / dy;
+    const double tdts8  = tdt / 8.0;
+
     for (amrex::MFIter mfi(p_old); mfi.isValid(); ++mfi)
     {
         const amrex::Box& bx = mfi.validbox();
