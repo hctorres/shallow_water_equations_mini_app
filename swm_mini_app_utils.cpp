@@ -314,7 +314,7 @@ void Copy(const amrex::MultiFab & src, amrex::MultiFab & dest)
     amrex::MultiFab::Copy(dest, src, 0, 0, src.nComp(), src.nGrow());
 }
 
-void computeIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amrex::Geometry& geom,
+void updateIntermediateVariables(amrex::Real fsdx, amrex::Real fsdy, const amrex::Geometry& geom,
                                  const amrex::MultiFab& p, const amrex::MultiFab& u, const amrex::MultiFab& v,
                                  amrex::MultiFab& cu, amrex::MultiFab& cv, amrex::MultiFab& h, amrex::MultiFab& z)
 {
@@ -390,4 +390,63 @@ void updateNewVariables(const double dx, const double dy, const double tdt, cons
     u_new.FillBoundary(geom.periodicity());
     v_new.FillBoundary(geom.periodicity());
     p_new.FillBoundary(geom.periodicity());
+}
+
+void updateOldVariables(const double alpha, const int time_step, const amrex::Geometry& geom,
+                        const amrex::MultiFab& p, const amrex::MultiFab& u, const amrex::MultiFab& v, 
+                        const amrex::MultiFab& p_new, const amrex::MultiFab& u_new, const amrex::MultiFab& v_new, 
+                        amrex::MultiFab& p_old, amrex::MultiFab& u_old, amrex::MultiFab& v_old)
+{
+    if (time_step > 0) {
+        for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
+        {
+            const amrex::Box& bx = mfi.validbox();
+
+            // Read only arrays
+            const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& p_new_array = p_new.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& u_new_array = u_new.const_array(mfi);
+            const amrex::Array4<amrex::Real const>& v_new_array = v_new.const_array(mfi);
+
+            // Write arrays
+            const amrex::Array4<amrex::Real>& p_old_array = p_old.array(mfi);
+            const amrex::Array4<amrex::Real>& u_old_array = u_old.array(mfi);
+            const amrex::Array4<amrex::Real>& v_old_array = v_old.array(mfi);
+
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+            {
+                amrex::Real u_old_temp = u_old_array(i,j,k);
+                amrex::Real v_old_temp = v_old_array(i,j,k);
+                amrex::Real p_old_temp = p_old_array(i,j,k);
+
+                u_old_array(i,j,k) = u_array(i,j,k) + alpha * (u_new_array(i,j,k) - 2.0*u_array(i,j,k) + u_old_temp);
+                v_old_array(i,j,k) = v_array(i,j,k) + alpha * (v_new_array(i,j,k) - 2.0*v_array(i,j,k) + v_old_temp);
+                p_old_array(i,j,k) = p_array(i,j,k) + alpha * (p_new_array(i,j,k) - 2.0*p_array(i,j,k) + p_old_temp);
+            });
+        }
+    } else {
+
+        Copy(u, u_old);
+        Copy(v, v_old);
+        Copy(p, p_old);
+    }
+
+    u_old.FillBoundary(geom.periodicity());
+    v_old.FillBoundary(geom.periodicity());
+    p_old.FillBoundary(geom.periodicity());
+}
+
+void updateVariables(const amrex::Geometry& geom, 
+                     const amrex::MultiFab& u_new, const amrex::MultiFab& v_new, const amrex::MultiFab& p_new,
+                     amrex::MultiFab& u, amrex::MultiFab& v, amrex::MultiFab& p)
+{
+    Copy(u_new, u);
+    Copy(v_new, v);
+    Copy(p_new, p);
+
+    u.FillBoundary(geom.periodicity());
+    v.FillBoundary(geom.periodicity());
+    p.FillBoundary(geom.periodicity());
 }

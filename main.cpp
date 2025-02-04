@@ -20,24 +20,24 @@ int main (int argc, char* argv[])
     // Simulation Parameters Set Via Input File
     // ***********************************************************************
 
-    // number of cells on each direction
+    // Number of cells on each direction
     int nx;
     int ny;
 
-    // cell size in each direction
+    // Cell size in each direction
     amrex::Real dx;
     amrex::Real dy;
 
-    // mesh will be broken into chunks of up to max_chunk_size
+    // Mesh will be broken into chunks of up to max_chunk_size
     int max_chunk_size;
 
-    // number of time steps to take
+    // Number of time steps to take
     int n_time_steps;
 
-    // size of time step
+    // Size of time step
     amrex::Real dt;
 
-    // how often to write a plotfile
+    // How often to write a plotfile
     //     Optional argument. If left out no plot files will be written.
     int plot_interval;
 
@@ -115,8 +115,8 @@ int main (int argc, char* argv[])
     // Stored on the cell centers (same locations as psi)
     amrex::MultiFab z = createMultiFab(psi);
 
-    // The potential vorticity. 
-    // Called z for consistency with the other version of the mini-app
+    // The term (P + 1/2(V dot V)). The gradient of this term appears on the right hand side of the momentum equations.
+    // Called h for consistency with the other version of the mini-app
     // Stored on the nodal points (same locations as p)
     amrex::MultiFab h = createMultiFab(p);
 
@@ -137,74 +137,36 @@ int main (int argc, char* argv[])
     const double fsdx = 4.0/dx;
     const double fsdy = 4.0/dy;
     double tdt = dt;
+    const double alpha = 0.001; 
 
     for (int time_step = 0; time_step < n_time_steps; ++time_step)
     {
-        // Call the new function
-        computeIntermediateVariables(fsdx, fsdy, geom,
+        // Sets: cu, cv, h, z
+        updateIntermediateVariables(fsdx, fsdy, geom,
                                      p, u, v,
                                      cu, cv, h, z);
 
 
+        // Sets: p_new, u_new, v_new
         updateNewVariables(dx, dy, tdt, geom,
                            p_old, u_old, v_old, cu, cv, h, z,
                            p_new, u_new, v_new);
 
-        time = time + dt;
 
-        // Update the old values for the next time step
-        if (time_step>0) {
+        // Sets: p_old, u_old, v_old
+        updateOldVariables(alpha, time_step, geom,
+                           p, u, v,
+                           p_new, u_new, v_new,
+                           p_old, u_old, v_old);
 
-            double alpha = 0.001;
+        // Sets: p, u, v
+        updateVariables(geom, u_new, v_new, p_new, u, v, p);
 
-            for (amrex::MFIter mfi(p); mfi.isValid(); ++mfi)
-            {
-                const amrex::Box& bx = mfi.validbox();
-
-                // Read only arrays
-                const amrex::Array4<amrex::Real const>& p_array = p.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& u_array = u.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& v_array = v.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& p_new_array = p_new.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& u_new_array = u_new.const_array(mfi);
-                const amrex::Array4<amrex::Real const>& v_new_array = v_new.const_array(mfi);
-
-                // Write arrays
-                const amrex::Array4<amrex::Real>& p_old_array = p_old.array(mfi);
-                const amrex::Array4<amrex::Real>& u_old_array = u_old.array(mfi);
-                const amrex::Array4<amrex::Real>& v_old_array = v_old.array(mfi);
-
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
-                {
-                    amrex::Real u_old_temp = u_old_array(i,j,k);
-                    amrex::Real v_old_temp = v_old_array(i,j,k);
-                    amrex::Real p_old_temp = p_old_array(i,j,k);
-
-                    u_old_array(i,j,k) = u_array(i,j,k) + alpha * (u_new_array(i,j,k) - 2.0*u_array(i,j,k) + u_old_temp);
-                    v_old_array(i,j,k) = v_array(i,j,k) + alpha * (v_new_array(i,j,k) - 2.0*v_array(i,j,k) + v_old_temp);
-                    p_old_array(i,j,k) = p_array(i,j,k) + alpha * (p_new_array(i,j,k) - 2.0*p_array(i,j,k) + p_old_temp);
-                });
-            }
-
-        } else {
+        if (time_step == 0) {
             tdt = tdt + tdt;
-
-            Copy(u, u_old);
-            Copy(v, v_old);
-            Copy(p, p_old);
         }
-        // Im not sure if I need to fill the ghost cells again here for sure. The copy might have already taken care of this. Explicitly doing it just in case.
-        u_old.FillBoundary(geom.periodicity());
-        v_old.FillBoundary(geom.periodicity());
-        p_old.FillBoundary(geom.periodicity());
 
-        // Update values for the next time step
-        Copy(u_new, u);
-        Copy(v_new, v);
-        Copy(p_new, p);
-        u.FillBoundary(geom.periodicity());
-        v.FillBoundary(geom.periodicity());
-        p.FillBoundary(geom.periodicity());
+        time = time + dt;
 
         // Write a plotfile of the current data (plot_interval was defined in the inputs file)
         if (plot_interval > 0 && time_step%plot_interval == 0)
